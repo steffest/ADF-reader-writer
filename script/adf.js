@@ -137,16 +137,30 @@ var adf = function(){
 		file.dataBlockExtention = disk.readLong();
 		file.type = disk.readLong() == 4294967293 ? "FILE" : "DIR"; // 4294967293 == -3 , should we read as signed ?
 
+
+
 		if (includeContent){
 			file.content = new Uint8Array(file.size);
 
-			// TODO: dude - we still need to load the rest of the pointers for files > 2 kb ....
+			// there are 2 ways to read a file:
+			// 1 is to read the list of datablock pointers and collect each datablock
+			// 2 is to follow the linked list of datablocks
+
+			// the second one seems somewhat easier to implement
+			// because otherwise we have to collect each extention block first
 			var index = 0;
-			entries.forEach(function(sector){
-				var block = readDataBlock(sector);
+			var nextBlock = block.firstDataBlock;
+			while (nextBlock !== 0){
+				block = readDataBlock(nextBlock);
 				file.content.set(block.content,index);
 				index += block.dataSize;
-			});
+				nextBlock = block.nextDataBlock;
+			}
+
+
+			//entries.forEach(function(sector){
+
+			//});
 		}
 
 		return file;
@@ -177,6 +191,12 @@ var adf = function(){
 
 
 		return block;
+	}
+
+	function readExtentionBlock(sector){
+		var block = {};
+		disk.goto(sector * SectorSize);
+		block.type = disk.readLong(); // should be 16 for LIST block
 	}
 
 	function readHeaderBlock(sector){
