@@ -1,0 +1,204 @@
+html,body{
+    margin: 0;
+    padding: 0;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+.clear{
+    clear: both;
+}
+
+#container{
+    width: 800px;
+    margin: auto;
+}
+
+textarea{
+    font-family: "Courier New",monospace;
+    font-size: 13px;
+}
+
+#dropzone{
+    border: 1px dashed #427fb7;
+    margin: 10px 0;
+    padding: 10px;
+}
+
+#dropzone.over{
+    border: 1px dashed #fb9b00;
+}
+
+#dropzone .selector{
+    float: right;
+}
+
+#filemanager .panel{
+    border: 1px solid silver;
+}
+
+.caption{
+    background-color: #427fb7;
+    color: white;
+    padding: 4px;
+}
+
+.caption.amiga{
+    background-image: url("../img/amiga.svg");
+    background-size: 20px 16px;
+    background-position: 2px 4px;
+    background-repeat: no-repeat;
+
+    padding: 4px 4px 4px 24px;
+}
+
+.diskheader{
+    position: relative;
+    border-bottom: 1px solid silver;
+    min-height: 24px;
+}
+
+.diskheader .button{
+    display: inline-block;
+    position: absolute;
+    padding: 4px;
+    background-color: #c0d2dc;
+}
+
+.diskheader .button:hover{
+    cursor: pointer;
+    background-color: #d5e8f2;
+}
+
+.diskheader .itemlabel{
+    padding: 4px 4px 4px 44px;
+    min-height: 24px;
+}
+
+.diskheader .button.right{
+    right: 0;
+}
+
+.diskheader .inline,
+.diskheader .button.inline{
+    display: inline-block;
+    padding: 2px 4px;
+    position: relative;
+}
+
+.diskheader input{
+    width: 50px;
+    text-align: center;
+    border: 0;
+    display: inline-block;
+}
+
+#list,
+#hex,
+#sectorhex{
+    height: 300px;
+    width: 500px;
+    overflow: scroll;
+    position: absolute;
+}
+
+
+#fileinfo,
+#ascii,
+#sectorascii{
+    width: 300px;
+    height: 300px;
+    float: right;
+    background-color: #f8f8f8;
+    border-left: 1px solid silver;
+    padding: 4px;
+    font-size: 12px;
+}
+
+#hex.ascii{
+    display: none;
+}
+#ascii.ascii{
+   width: 800px;
+}
+
+#fileinfo h3{
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+}
+
+#fileinfo h4{
+    margin: 10px 0 4px 0;
+    padding: 0 0 2px 0;
+    font-size: 12px;
+    border-bottom: 1px solid silver;
+}
+
+#fileinfo .info{
+    padding: 4px 4px 4px 20px;
+}
+
+#fileinfo td{
+    font-size: 12px;
+    border-bottom: 1px solid silver;
+}
+
+#fileinfo .action{
+    padding: 2px 0;
+    color: #427fb7;
+}
+
+#fileinfo .action:hover{
+    cursor: pointer;
+    color: #079bd7;
+    text-decoration: underline;
+}
+
+.listitem{
+    padding: 4px 8px;
+    border-bottom: 1px solid silver;
+}
+
+.listitem i{
+    display: inline-block;
+    width: 20px;
+    color: #427fb7;
+}
+
+.listitem.DIR i{
+    color: #dcc200;
+}
+
+.listitem .label{
+    display: inline-block;
+    width: 200px;
+}
+
+.listitem.DIR{
+    background-color: #F5f5f5;
+}
+
+.listitem:hover{
+    cursor: pointer;
+    border-bottom: 1px solid #485f74;
+    background-color: #deebf5;
+}
+
+#feedback{
+    border: 1px dashed #ff7405;
+    margin: 10px 0;
+    padding: 10px;
+}
+
+#feedback,
+#folder,
+#file,
+#raw{
+    display: none;
+}

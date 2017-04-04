@@ -1,0 +1,98 @@
+<html>
+<head>
+    <script src="script/lib/filesaver.js"></script>
+    <script src="script/file.js"></script>
+    <script src="script/adf.js"></script>
+    <script src="script/main.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="style/main.css">
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+</head>
+<body>
+
+<div id="container">
+    <div id="dropzone">
+        <div class="selector">
+            or choose a test disk:
+            <select id="diskurl" onchange="AdfViewer.load()">
+                <option value="">---</option>
+                <option value="spudmine7.adf">spudmine7.adf</option>
+                <option value="DeluxePaintIII.adf">DeluxePaintIII.adf</option>
+                <option value="VogueMusicDisk.adf">VogueMusicDisk.adf</option>
+            </select>
+        </div>
+        Drop your .adf files here
+    </div>
+
+    <div id="feedback">
+    </div>
+
+    <div id="filemanager">
+        <div class="caption amiga">ADF file</div>
+        <div class="panel" id="folder">
+            <div class="diskheader">
+                <div class="button right" onclick="AdfViewer.showSector(0)">Read Raw sectors</div>
+                <div class="button" onclick="AdfViewer.showRoot()">Disk:</div>
+                <div id="disklabel" class="itemlabel">&nbsp;</div>
+            </div>
+            <div id="fileinfo">
+
+            </div>
+            <div id="list">
+
+            </div>
+            <div class="clear"></div>
+        </div>
+
+        <div class="panel" id="file">
+            <div class="diskheader">
+                <div class="button right" onclick="AdfViewer.showFolder()">Back</div>
+                <div class="button" onclick="AdfViewer.download()">File:</div>
+                <div id="filelabel" class="itemlabel">&nbsp;</div>
+            </div>
+            <textarea id="hex">
+
+            </textarea>
+            <textarea id="ascii">
+
+            </textarea>
+            <div class="clear"></div>
+        </div>
+
+        <div class="panel" id="raw">
+            <div class="diskheader">
+                <div class="button right" onclick="AdfViewer.showFolder()">Back</div>
+                <span class="inline">Sector:</span>
+                <div class="button inline" onclick="AdfViewer.prevSector()"><</div>
+                <input type="text" id="sector" value="0" onchange="AdfViewer.onSectorUpdate()">
+                <div class="button inline" onclick="AdfViewer.nextSector()">></div>
+                <span class="inline" id="sectorinfo"></span>
+            </div>
+            <textarea id="sectorhex">
+
+            </textarea>
+            <textarea id="sectorascii">
+
+            </textarea>
+            <div class="clear"></div>
+        </div>
+
+    </div>
+
+</div>
+
+
+
+
+<script>
+    var target = document.getElementById("dropzone");
+    if (target){
+        target.addEventListener("dragenter", AdfViewer.handleDragEnter, false);
+        target.addEventListener("dragover", AdfViewer.handleDragOver, false);
+        target.addEventListener("drop", AdfViewer.handleDrop, false);
+    }
+</script>
+
+</body>
+</html>
