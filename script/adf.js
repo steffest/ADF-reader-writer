@@ -15,8 +15,6 @@ var adf = function(){
 
 	me.loadDisk = function(url,next){
 
-		console.error(typeof url);
-
 		var onLoad = function(buffer){
 			console.log("ADF loaded");
 
@@ -69,18 +67,6 @@ var adf = function(){
 		return info;
 	};
 
-	function getFileNameAtSector(sector){
-		disk.goto((sector * SectorSize) + SectorSize - 80);
-		var nameLength = disk.readUbyte();
-		return disk.readString(nameLength);
-
-	}
-	function getFileTypeAtSector(sector){
-		disk.goto((sector * SectorSize) + SectorSize - 4);
-		var long = disk.readLong();
-		return long == 4294967293 ? "FILE" : "DIR";
-	}
-
 	me.getSectorType = function(sector){
 		if (sector == 0) return "BOOTBLOCK";
 		if (sector == 880) return "ROOTBLOCK";
@@ -97,47 +83,14 @@ var adf = function(){
 	};
 
 	me.readFileAtSector = function(sector,includeContent){
+		var file = {
+			sector: sector
+		};
 
-		disk.goto((sector * SectorSize));
-
-		var file = {sector: sector};
-		var block = {};
-		block.type  = disk.readLong(); // should be 2 for HEADER block
-		block.headerSector  = disk.readLong(); // self pointer, should be the same as the initial sector
-		block.DataBlockCount = disk.readLong(); // the amount of datablocks;
-		block.dataSize = disk.readLong(); // not used
-		block.firstDataBlock = disk.readLong(); // should be the same as the first block in the dataBlock List
-		block.checkSum = disk.readLong();
-
-		var entries = [];
-		// data block pointers are stored bottom to top ?
-		// do we need to stop if numberDataBlocks is reached ?
-		// do we even need this as the firstDataBlock pointer is also at offset 0x10 ?
-		for (var i = 0; i<72; i++){
-			var b = disk.readLong();
-			if (b) entries.unshift(b);
+		var block = readHeaderBlock(sector);
+		for (var key in block.item){
+			if (block.item.hasOwnProperty(key)) file[key] = block.item[key];
 		}
-		file.datablocks = entries;
-
-		disk.goto((sector * SectorSize) + SectorSize - 188);
-		file.size = disk.readLong();
-		var dataLength = disk.readUbyte();
-		file.comment = dataLength ? disk.readString(dataLength) : "";
-		disk.goto((sector * SectorSize) + SectorSize - 92);
-		file.lastChangeDays = disk.readLong(); // days since 1 jan 78
-		file.lastChangeMinutes = disk.readLong();
-		file.lastChangeTicks = disk.readLong(); // in 1/50s of a seconds
-
-		dataLength = disk.readUbyte();
-		file.name = dataLength ? disk.readString(dataLength) : "";
-
-		disk.goto((sector * SectorSize) + SectorSize - 16);
-		file.hashChain = disk.readLong();
-		file.parent = disk.readLong();
-		file.dataBlockExtention = disk.readLong();
-		file.type = disk.readLong() == 4294967293 ? "FILE" : "DIR"; // 4294967293 == -3 , should we read as signed ?
-
-
 
 		if (includeContent){
 			file.content = new Uint8Array(file.size);
@@ -156,14 +109,60 @@ var adf = function(){
 				index += block.dataSize;
 				nextBlock = block.nextDataBlock;
 			}
-
-
-			//entries.forEach(function(sector){
-
-			//});
 		}
 
 		return file;
+	};
+
+	me.readFolderAtSector = function(sector){
+		var directory = {
+			folders: [],
+			files: [],
+			sector: sector
+		};
+
+		var block = readHeaderBlock(sector);
+		for (var key in block.item){
+			if (block.item.hasOwnProperty(key)) directory[key] = block.item[key];
+		}
+
+		// NOTE: block.pointers contains only the first 72 entries
+		// the rest is linked to another entry (which is a weird design)
+		var entries = [];
+		block.pointers.forEach(function(sector){
+			entries.push({
+				sector: sector,
+				name: getFileNameAtSector(sector),
+				type: getFileTypeAtSector(sector)
+			})
+		});
+
+		// NOTE:  entries.length may change in the loop if we find chained files
+		for (var i = 0; i< entries.length; i++){
+			var entry = entries[i];
+
+			if (entry.type == "FILE"){
+				var file = me.readFileAtSector(entry.sector,false);
+				directory.files.push(file);
+				if (file.linkedSector) entries.push(
+						{
+							sector: file.linkedSector,
+							name: getFileNameAtSector(file.linkedSector),
+							type: getFileTypeAtSector(file.linkedSector)
+						}
+				);
+			}else{
+				// TODO: shouldn't we also need to follow the linkedSector of Folders?
+				// What if a folder has more then 72 subfolders?
+				directory.folders.push(entry);
+			}
+		}
+
+		return directory;
+	};
+
+	me.readRootFolder = function(){
+		return me.readFolderAtSector(880);
 	};
 
 	function readDataBlock(sector){
@@ -193,110 +192,69 @@ var adf = function(){
 		return block;
 	}
 
+	function readHeaderBlock(sector){
+		disk.goto(sector * SectorSize);
+
+		var block = {};
+		block.type  = disk.readLong(); // should be 2 for HEADER block
+		block.headerSector  = disk.readLong(); // self pointer, should be the same as the initial sector
+		block.DataBlockCount = disk.readLong(); // the amount of datablocks for files, unused for folders
+		block.dataSize = disk.readLong(); // not used for folders
+		block.firstDataBlock = disk.readLong(); // should be the same as the first block in the dataBlock List for files, not used for folders
+		block.checkSum = disk.readLong();
+
+		block.pointers = [];
+		// 72 longs
+		// for folders thsese are pointers of files and directories in header sector
+		// for files these are pointers to the datablocks
+		for (var i = 1; i<= 72; i++){
+			var b = disk.readLong();
+			if (b) block.pointers.unshift(b);
+		}
+
+
+		disk.goto((sector * SectorSize) + SectorSize - 188);
+		block.item = {};
+		block.item.size = disk.readLong(); // filesize for files, not used for folders
+		var dataLength = disk.readUbyte();
+		block.item.comment = dataLength ? disk.readString(dataLength) : "";
+
+		disk.goto((sector * SectorSize) + SectorSize - 92);
+		block.item.lastChangeDays = disk.readLong(); // days since 1 jan 78
+		block.item.lastChangeMinutes = disk.readLong();
+		block.item.lastChangeTicks = disk.readLong(); // in 1/50s of a seconds
+
+		dataLength = disk.readUbyte();
+		block.item.name = dataLength ? disk.readString(dataLength) : "";
+
+		disk.goto((sector * SectorSize) + SectorSize - 16);
+		block.item.linkedSector = disk.readLong(); // sector of entry in the same folder
+		block.item.parent = disk.readLong();
+		block.item.dataBlockExtention = disk.readLong();
+		block.item.type = disk.readLong() == 4294967293 ? "FILE" : "DIR"; // 4294967293 == -3 , should we read as signed ?
+		// block.item.type == 2 : USERDIR
+
+		return block;
+	}
+
 	function readExtentionBlock(sector){
 		var block = {};
 		disk.goto(sector * SectorSize);
 		block.type = disk.readLong(); // should be 16 for LIST block
 	}
 
-	function readHeaderBlock(sector){
-		// todo - header block for files and folders are almost the same, no?
+	function getFileNameAtSector(sector){
+		disk.goto((sector * SectorSize) + SectorSize - 80);
+		var nameLength = disk.readUbyte();
+		return disk.readString(nameLength);
+
 	}
 
-	me.readSector = function(sector){
-		disk.goto(sector * SectorSize);
-		var result = new Uint8Array(SectorSize);
-		for (var i = 0; i<SectorSize; i++){
-			result[i] = disk.readUbyte();
-		}
-		return result;
-	};
-
-
-	me.readFolderAtSector = function(sector){
-
-		var directory = {
-			folders: [],
-			files: []
-		};
-
-		var entries = [];
-
-		disk.goto(sector * SectorSize);
-
-		var block = {};
-		block.type = disk.readLong(); // should be 2 = HEADER
-		block.headerBlock = disk.readLong(); // should be the same as the initial sector
-		block.unused = disk.readLong();
-		block.unused = disk.readLong();
-		block.unused = disk.readLong();
-		block.checksum = disk.readLong();
-
-		var pointers = [];
-		// 72 longs for pointers of files and directories in header sector
-		for (var i = 1; i<= 72; i++){
-			var b = disk.readLong();
-			if (b) pointers.unshift(b);
-		}
-
-		disk.goto((sector * SectorSize) + SectorSize - 184);
-		var dataLength = disk.readUbyte();
-		directory.comment = dataLength ? disk.readString(dataLength) : "";
-
-		disk.goto((sector * SectorSize) + SectorSize - 92);
-		directory.lastChangeDays = disk.readLong(); // days since 1 jan 78
-		directory.lastChangeMinutes = disk.readLong();
-		directory.lastChangeTicks = disk.readLong(); // in 1/50s of a seconds
-
-		dataLength = disk.readUbyte();
-		directory.name = dataLength ? disk.readString(dataLength) : "";
-
-		disk.goto((sector * SectorSize) + SectorSize - 40);
-		directory.nextLink = disk.readLong();
-
-
-		disk.goto((sector * SectorSize) + SectorSize - 16);
-		directory.nextHeaderSector = disk.readLong();
-		directory.parent = disk.readLong();
-		directory.dataBlockExtention = disk.readLong();
-		directory.type = disk.readLong() == 4294967293 ? "FILE" : "DIR"; // 4294967293 == -3 , should we read as signed ?
-
-		// 2: USERDIR
-
-		pointers.forEach(function(sector){
-			entries.push({
-				sector: sector,
-				name: getFileNameAtSector(sector),
-				type: getFileTypeAtSector(sector)
-			})
-		});
-
-		// note:  entries.length may change in the loop if we find chained files
-		for (i = 0; i< entries.length; i++){
-			var entry = entries[i];
-
-			if (entry.type == "FILE"){
-				var file = me.readFileAtSector(entry.sector,false);
-				directory.files.push(file);
-				if (file.hashChain) entries.push(
-					{
-						sector: file.hashChain,
-						name: getFileNameAtSector(file.hashChain),
-						type: getFileTypeAtSector(file.hashChain)
-					}
-				);
-			}else{
-				// TODO: shouldn't we also need to follow the hashChain of Folders?
-				directory.folders.push(entry);
-			}
-		}
-
-		return directory;
-	};
-
-	me.readRootFolder = function(){
-		return me.readFolderAtSector(880);
-	};
+	function getFileTypeAtSector(sector){
+		disk.goto((sector * SectorSize) + SectorSize - 4);
+		var long = disk.readLong();
+		return long == 4294967293 ? "FILE" : "DIR";
+	}
 
 	return me;
 }();

@@ -1,30 +1,3 @@
-function loadFile(url,next) {
-	var req = new XMLHttpRequest();
-	req.open("GET", url, true);
-	req.responseType = "arraybuffer";
-	req.onload = function (event) {
-		var arrayBuffer = req.response;
-		if (arrayBuffer) {
-			if (next) next(arrayBuffer);
-		} else {
-			console.error("unable to load", url);
-			if (next) next(false);
-		}
-	};
-	req.send(null);
-}
-
-function saveFile(b,filename){
-	var a = document.createElement("a");
-	document.body.appendChild(a);
-	a.style = "display: none";
-	url = window.URL.createObjectURL(b);
-	a.href = url;
-	a.download = filename;
-	a.click();
-	window.URL.revokeObjectURL(url);
-}
-
 function BinaryStream(arrayBuffer, bigEndian){
 	var obj = {
 		index: 0,
@@ -182,5 +155,33 @@ function BinaryStream(arrayBuffer, bigEndian){
 	obj.length = arrayBuffer.byteLength;
 
 	return obj;
+}
+
+function loadFile(url,next) {
+	var req = new XMLHttpRequest();
+	req.open("GET", url, true);
+	req.responseType = "arraybuffer";
+	req.onload = function (event) {
+		var arrayBuffer = req.response;
+		if (arrayBuffer) {
+			if (next) next(arrayBuffer);
+		} else {
+			console.error("unable to load", url);
+			if (next) next(false);
+		}
+	};
+	req.send(null);
+}
+
+function saveFile(b,filename){
+	//NOTE: this doesn't work on all browsers, a more robust way is to use the filesaver.js of Eli Grey
+	var a = document.createElement("a");
+	document.body.appendChild(a);
+	a.style = "display: none";
+	url = window.URL.createObjectURL(b);
+	a.href = url;
+	a.download = filename;
+	a.click();
+	window.URL.revokeObjectURL(url);
 }
 
