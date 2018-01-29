@@ -1,0 +1,118 @@
+<html>
+<head>
+    <script src="../script/lib/filesaver.js"></script>
+    <script src="../script/file.js"></script>
+    <script src="../script/adf.js"></script>
+    <script src="script/md5.js"></script>
+    <script src="script/main.js"></script>
+
+    <link rel="stylesheet" type="text/css" href="style/main.css">
+    <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
+
+</head>
+<body>
+
+<div id="container">
+    <div id="dropzone">
+        Drop your .adf files here
+    </div>
+
+    <div id="feedback">
+    </div>
+
+    <div id="filelist">
+    </div>
+
+    <div id="filemanager">
+        <div class="caption amiga"><div id="closebutton">x</div>ADF file</div>
+        <div class="panel" id="folder">
+            <div class="diskheader">
+                <div class="button right" onclick="AdfViewer.showSector(0)">Read Raw sectors</div>
+                <div class="button" onclick="AdfViewer.showRoot()">Disk:</div>
+                <div id="disklabel" class="itemlabel">&nbsp;</div>
+            </div>
+            <div id="fileinfo">
+
+            </div>
+            <div id="list">
+
+            </div>
+            <div class="clear"></div>
+        </div>
+
+        <div class="panel" id="file">
+            <div class="diskheader">
+                <div class="button right" onclick="AdfViewer.showFolder()">Back</div>
+                <div class="button" onclick="AdfViewer.download()">File:</div>
+                <div id="filelabel" class="itemlabel">&nbsp;</div>
+            </div>
+            <textarea id="hex">
+
+            </textarea>
+            <textarea id="ascii">
+
+            </textarea>
+            <div class="clear"></div>
+        </div>
+
+        <div class="panel" id="raw">
+            <div class="diskheader">
+                <div class="button right" onclick="AdfViewer.showFolder()">Back</div>
+                <span class="inline">Sector:</span>
+                <div class="button inline" onclick="AdfViewer.prevSector()"><</div>
+                <input type="text" id="sector" value="0" onchange="AdfViewer.onSectorUpdate()">
+                <div class="button inline" onclick="AdfViewer.nextSector()">></div>
+                <span class="inline" id="sectorinfo"></span>
+            </div>
+            <textarea id="sectorhex">
+
+            </textarea>
+            <textarea id="sectorascii">
+
+            </textarea>
+            <div class="clear"></div>
+        </div>
+
+    </div>
+
+    <div class="footer">
+        <b>What's this?</b>
+        <br>This is an online tool to quickly check if your Amiga ADF files are in <a href="https://www.tosecdev.org/" target="_blank">TOSEC</a>.</b>
+        <br><br>
+        <b>Usage:</b><br> Select a bunch of ADF files on your drive and drag-drop them onto the disk above.<br>
+        The TOSEC status will be checked by it's MD5 hash.<br>
+        <br>Click on a disk to examine it and extract it's files.<br><br>
+        <b>Who made it?</b><br>
+         2018 by Steffest - V 0.1 - <a href="https://github.com/steffest/ADF-reader">source on Github</a> - Plain javascript<br>
+        <a href="mailto:dev@stef.be">Contact me</a> for bugreports and feature requests.
+
+        <br><br>
+
+        <span>This tool uses all the Amiga TOSEC dat files from the <a href="https://www.tosecdev.org/downloads/category/41-2017-11-01" target="_blank">2017-11-01 release</a><br>
+        listing <b>79.042</b> disks.
+        </span>
+
+    </div>
+
+
+</div>
+
+
+<script>
+    var target = document.getElementById("dropzone");
+    if (target){
+        target.addEventListener("dragenter", AdfViewer.handleDragEnter, false);
+        target.addEventListener("dragover", AdfViewer.handleDragOver, false);
+        target.addEventListener("dragleave", AdfViewer.handleDragLeave, false);
+        target.addEventListener("drop", AdfViewer.handleDrop, false);
+    }
+
+    var initialFile = getUrlParameter("file");
+    if (initialFile){
+        initialFile = decodeURIComponent(initialFile);
+        AdfViewer.load(initialFile);
+    }
+</script>
+
+</body>
+</html>

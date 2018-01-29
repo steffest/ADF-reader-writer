@@ -1,0 +1,327 @@
+html,body{
+    margin: 0;
+    padding: 0;
+    font-family: Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+*, *:before, *:after {
+    box-sizing: inherit;
+}
+
+.clear{
+    clear: both;
+}
+
+#container,
+#filelist{
+    width: 800px;
+    margin: auto;
+    max-width: 98%;
+}
+
+textarea{
+    font-family: "Courier New",monospace;
+    font-size: 13px;
+}
+
+#dropzone{
+    border: 5px solid silver;
+    margin: 10px 0;
+    padding: 10px;
+    color: grey;
+    text-align: center;
+    padding-top: 60%;
+    background-image: url("../amiga.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center center;
+}
+
+#dropzone.small{
+    padding: 80px 10px 1px 10px;
+}
+
+#dropzone.over{
+    border: 5px solid #427fb7;
+    background-color: #ecedfa;
+}
+
+#dropzone .selector{
+    float: right;
+}
+
+#filemanager{
+    display: none;
+}
+
+#filemanager .panel{
+    border: 1px solid silver;
+}
+
+.caption{
+    background-color: #427fb7;
+    color: white;
+    padding: 4px;
+    position: relative;
+}
+
+.caption.amiga{
+    background-image: url("../../img/amiga.svg");
+    background-size: 20px 16px;
+    background-position: 2px 4px;
+    background-repeat: no-repeat;
+
+    padding: 4px 4px 4px 24px;
+}
+
+.diskheader{
+    position: relative;
+    border-bottom: 1px solid silver;
+    min-height: 24px;
+}
+
+.diskheader .button{
+    display: inline-block;
+    position: absolute;
+    padding: 4px;
+    background-color: #c0d2dc;
+}
+
+.diskheader .button:hover{
+    cursor: pointer;
+    background-color: #d5e8f2;
+}
+
+.diskheader .itemlabel{
+    padding: 4px 4px 4px 44px;
+    min-height: 24px;
+}
+
+.diskheader .button.right{
+    right: 0;
+}
+
+.diskheader .inline,
+.diskheader .button.inline{
+    display: inline-block;
+    padding: 2px 4px;
+    position: relative;
+}
+
+.diskheader input{
+    width: 50px;
+    text-align: center;
+    border: 0;
+    display: inline-block;
+}
+
+#list,
+#hex,
+#sectorhex{
+    height: 300px;
+    width: 500px;
+    overflow: scroll;
+    position: absolute;
+}
+
+
+#fileinfo,
+#ascii,
+#sectorascii{
+    width: 300px;
+    height: 300px;
+    float: right;
+    background-color: #f8f8f8;
+    border-left: 1px solid silver;
+    padding: 4px;
+    font-size: 12px;
+}
+
+#hex.ascii{
+    display: none;
+}
+#ascii.ascii{
+   width: 800px;
+}
+
+#fileinfo h3{
+    margin: 0;
+    padding: 0;
+    font-size: 14px;
+}
+
+#fileinfo h4{
+    margin: 10px 0 4px 0;
+    padding: 0 0 2px 0;
+    font-size: 12px;
+    border-bottom: 1px solid silver;
+}
+
+#fileinfo .info{
+    padding: 4px 4px 4px 20px;
+}
+
+#fileinfo td{
+    font-size: 12px;
+    border-bottom: 1px solid silver;
+}
+
+#fileinfo .action{
+    padding: 2px 0;
+    color: #427fb7;
+}
+
+#fileinfo .action:hover{
+    cursor: pointer;
+    color: #079bd7;
+    text-decoration: underline;
+}
+
+.listitem{
+    padding: 4px 8px;
+    border-bottom: 1px solid silver;
+}
+
+.listitem i{
+    display: inline-block;
+    width: 20px;
+    color: #427fb7;
+}
+
+.listitem.DIR i{
+    color: #dcc200;
+}
+
+.listitem .label{
+    display: inline-block;
+    width: 200px;
+}
+
+.listitem.DIR{
+    background-color: #F5f5f5;
+}
+
+.listitem:hover,
+#filelist .file:hover,
+#filelist .file.unknown:hover{
+    cursor: pointer;
+    border-bottom: 1px solid #485f74;
+    background-color: #deebf5;
+}
+
+#feedback{
+    border: 2px solid #5B6FC0;
+    margin: 10px 0;
+    padding: 10px;
+    text-align: center;
+}
+
+#feedback:hover{
+    cursor: pointer;
+}
+
+#feedback:hover .button{
+    background-color: #deebf5;
+}
+
+#feedback .button{
+    border: 1px solid #5B6FC0;
+    margin: 5px auto;
+    padding: 4px 10px;
+    width: 100px;
+    background-color: white;
+}
+
+.footer{
+    margin-top: 20px;
+    text-align: center;
+    font-size: 12px;
+    color: #427fb7;
+}
+
+.footer a{
+    color: #427fb7;
+    text-decoration: underline;
+}
+
+.footer b{
+    color: #283c5a;
+}
+
+.footer span,
+.footer span b{
+    color: #7b8598;
+}
+
+#feedback,
+#folder,
+#file,
+#raw{
+    display: none;
+}
+
+
+
+#filelist .file{
+    border-bottom: 1px solid #c5d0d1;
+    padding: 2px;
+    position: relative;
+}
+
+#filelist .file.unknown{
+    color: #357762;
+    background-color: #e0fabc;
+    border-bottom: 1px solid #7ed16e;
+}
+#filelist .file.known{
+    color: #5f6d80;
+    border-bottom: 1px solid #c5d0d1;
+}
+
+#filelist .file div,
+#filelist .caption div{
+    display: inline-block;
+}
+
+#filelist .name{
+    width: 40%;
+    padding-left: 8px;
+}
+
+#filelist .info{
+    width: 59%;
+}
+
+#filelist .file div.inspect{
+    width: 60px;
+    position: absolute;
+    border: 1px solid silver;
+    background-color: white;
+    padding: 2px 2px;
+    font-size: 10px;
+    text-align: center;
+    margin-left: -64px;
+    bottom: 2px;
+    display: none;
+}
+
+#filelist .file:hover div.inspect{
+    display: inline-block;
+}
+
+
+#closebutton{
+    position: absolute;
+    right: 0;
+    top: 0;
+    color:  white;
+    font-size: 16px;
+    padding: 4px 10px;
+}
+
+#closebutton:hover{
+    cursor: pointer;
+    font-weight: bold;
+}

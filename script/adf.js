@@ -165,6 +165,20 @@ var adf = function(){
 		return me.readFolderAtSector(880);
 	};
 
+	me.readSector = function(sector){
+		disk.goto(sector * SectorSize);
+		var result = new Uint8Array(SectorSize);
+		for (var i = 0; i<SectorSize; i++){
+			result[i] = disk.readUbyte();
+		}
+		return result;
+	};
+
+
+	me.getMD5 = function(){
+		return md5 ? md5(disk.buffer) : "md5 lib not loaded";
+	};
+
 	function readDataBlock(sector){
 		var block = {};
 		disk.goto(sector * SectorSize);
@@ -255,6 +269,7 @@ var adf = function(){
 		var long = disk.readLong();
 		return long == 4294967293 ? "FILE" : "DIR";
 	}
+
 
 	return me;
 }();
