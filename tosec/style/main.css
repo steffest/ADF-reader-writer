@@ -37,6 +37,8 @@ textarea{
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center center;
+
+    border-radius: 10px;
 }
 
 #dropzone.small{
@@ -235,14 +237,51 @@ textarea{
 }
 
 .footer{
-    margin-top: 20px;
+    margin: 30px 0 60px 0;
     text-align: center;
     font-size: 12px;
-    color: #427fb7;
+    color: #44403a;
+    position: relative;
+
+
+    background: #f4f3eb; /* Old browsers */
+    background: -moz-linear-gradient(top, #f4f3eb 1%, #e5dec9 100%); /* FF3.6-15 */
+    background: -webkit-linear-gradient(top, #f4f3eb 1%,#e5dec9 100%); /* Chrome10-25,Safari5.1-6 */
+    background: linear-gradient(to bottom, #f4f3eb 1%,#e5dec9 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+
+    border-radius: 10px;
+
+    border: 2px solid rgba(0, 0, 0, 0.07);
 }
 
+.footer .top{
+    position: absolute;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAWCAMAAADO+P1vAAAAGXRFWHRTb2Z0d2FyZQBBZG9iZSBJbWFnZVJlYWR5ccllPAAAAyZpVFh0WE1MOmNvbS5hZG9iZS54bXAAAAAAADw/eHBhY2tldCBiZWdpbj0i77u/IiBpZD0iVzVNME1wQ2VoaUh6cmVTek5UY3prYzlkIj8+IDx4OnhtcG1ldGEgeG1sbnM6eD0iYWRvYmU6bnM6bWV0YS8iIHg6eG1wdGs9IkFkb2JlIFhNUCBDb3JlIDUuNi1jMTExIDc5LjE1ODMyNSwgMjAxNS8wOS8xMC0wMToxMDoyMCAgICAgICAgIj4gPHJkZjpSREYgeG1sbnM6cmRmPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5LzAyLzIyLXJkZi1zeW50YXgtbnMjIj4gPHJkZjpEZXNjcmlwdGlvbiByZGY6YWJvdXQ9IiIgeG1sbnM6eG1wPSJodHRwOi8vbnMuYWRvYmUuY29tL3hhcC8xLjAvIiB4bWxuczp4bXBNTT0iaHR0cDovL25zLmFkb2JlLmNvbS94YXAvMS4wL21tLyIgeG1sbnM6c3RSZWY9Imh0dHA6Ly9ucy5hZG9iZS5jb20veGFwLzEuMC9zVHlwZS9SZXNvdXJjZVJlZiMiIHhtcDpDcmVhdG9yVG9vbD0iQWRvYmUgUGhvdG9zaG9wIENDIDIwMTUgKFdpbmRvd3MpIiB4bXBNTTpJbnN0YW5jZUlEPSJ4bXAuaWlkOkI0M0I1RkI5MDU5QzExRTg4MTQ2QzQxRDJFRTM3MjI1IiB4bXBNTTpEb2N1bWVudElEPSJ4bXAuZGlkOkI0M0I1RkJBMDU5QzExRTg4MTQ2QzQxRDJFRTM3MjI1Ij4gPHhtcE1NOkRlcml2ZWRGcm9tIHN0UmVmOmluc3RhbmNlSUQ9InhtcC5paWQ6QjQzQjVGQjcwNTlDMTFFODgxNDZDNDFEMkVFMzcyMjUiIHN0UmVmOmRvY3VtZW50SUQ9InhtcC5kaWQ6QjQzQjVGQjgwNTlDMTFFODgxNDZDNDFEMkVFMzcyMjUiLz4gPC9yZGY6RGVzY3JpcHRpb24+IDwvcmRmOlJERj4gPC94OnhtcG1ldGE+IDw/eHBhY2tldCBlbmQ9InIiPz45bR0eAAAApVBMVEXAt6f49/KooJKnnpCpoZPPxrTPxbPLwbDKwbD7+/mooJHMwrHMwrCon5GpoZLn5d3m5d24sqnPxrO5ubfu7eX4+PPp6ODOxbL5+PTPyL2vrKjm5dzQxrPe18unn5Cnn5G/tqXOxbP49/HQxrTMw7HQx7TTybj+/v2/taXQx7X08urn5t3Mw7KsqaXn5t7z8um/tqasqab08+rz8ur8+/n08+v///9VzInbAAAAjUlEQVR42mzO2Q6CMBCF4akbqCjuu6IiqGDp7vs/mtMW5cZz9eVPJhl4/wZ3QsjCUxtjqv+cT7fHHLRCig48X6BlQ2VUU2Ulxt9aihb3LLDyzFK62r25apkOXY1t9SzpgB8i6LOCTZCzqK4j3gvq6rhBxjQ5X0JYMsX29PRYh3DFf1e7Ng4knhFt9xFgAPAcIX2WAh/+AAAAAElFTkSuQmCC');
+    background-size: 10px 30px;
+    height: 30px;
+    left: 16px;
+    right: 16px;
+    top: -12px;
+
+}
+
+.footer .barstop{
+    height: 30px;
+    margin: 28px 20px 20px 20px;
+    background: linear-gradient(#f4f3eb 42%, transparent 0, transparent 88%, #fffcef 0), rgba(178, 161, 131, 0.71);
+    background-size: 25px 9px;
+}
+
+.footer .barsbottom{
+    height: 30px;
+    margin: 20px;
+    background: linear-gradient(#E7E0CD 42%, transparent 0, transparent 88%, #fff8dd 0), rgba(155, 138, 108, 0.71);
+    background-size: 25px 9px;
+}
+
+
 .footer a{
-    color: #427fb7;
+    color: #44403a;
     text-decoration: underline;
 }
 
@@ -253,6 +292,39 @@ textarea{
 .footer span,
 .footer span b{
     color: #7b8598;
+}
+
+
+.panels{
+    text-align: center;
+}
+
+.panels .panel{
+    width: 30%;
+    margin: 4px;
+    height: 200px;
+    display: inline-block;
+    vertical-align: top;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: inset -1px -1px 1px rgba(255, 255, 255, .8), inset 1px 1px 1px rgba(0, 0, 0, .3);
+    border-radius: 5px;
+    padding: 16px;
+}
+
+.panels .panel h2{
+    margin: 0 0 10px 0;
+    padding: 4px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(0,0,0, .3);
+    box-shadow: 0 1px 1px rgba(255, 255, 255, .8);
+}
+
+.footer .panelwide{
+    margin: 4px 3.5%;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    box-shadow: inset -1px -1px 1px rgba(255, 255, 255, .8), inset 1px 1px 1px rgba(0, 0, 0, .3);
+    border-radius: 5px;
+    padding: 16px;
 }
 
 #feedback,
@@ -324,4 +396,18 @@ textarea{
 #closebutton:hover{
     cursor: pointer;
     font-weight: bold;
+}
+
+
+@media screen and (max-width: 600px) {
+    .panels .panel{
+        height: 250px;
+    }
+}
+
+@media screen and (max-width: 500px) {
+    .panels .panel{
+        height: auto;
+        width: 93%;
+    }
 }
