@@ -179,6 +179,19 @@ var adf = function(){
 		return md5 ? md5(disk.buffer) : "md5 lib not loaded";
 	};
 
+	me.getDisk = function(){
+		return disk;
+	};
+
+	me.getTrack = function(){
+		disk.goto(0 * SectorSize);
+		var result = new Uint8Array(SectorSize * 11);
+		for (var i = 0; i<SectorSize*11; i++){
+			result[i] = disk.readUbyte();
+		}
+		return result;
+	};
+
 	function readDataBlock(sector){
 		var block = {};
 		disk.goto(sector * SectorSize);

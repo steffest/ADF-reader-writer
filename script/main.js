@@ -2,6 +2,7 @@ var AdfViewer = function(){
 	var me = {};
 
 	var currentSector;
+	var currentFile;
 
 	me.load = function(url){
 		if (!url) url = el("diskurl").value;
@@ -122,14 +123,40 @@ var AdfViewer = function(){
 
 
 		if (f.type == "FILE"){
+			currentFile=f;
 			content += "<h4>Actions</h4>";
 			content += '<div class="action" onclick="AdfViewer.showAscii('+f.sector+')">Show as text</div>';
 			content += '<div class="action" onclick="AdfViewer.showHex('+f.sector+')">Show as hex</div>';
 			content += '<div class="action" onclick="AdfViewer.download('+f.sector+')">Download</div>';
+			content += '<div id="filetypeactions"></div>';
 		}
 
 		content += "</div>";
 		container.innerHTML = content;
+
+		if (f.type == "FILE"){
+			var fileType = AdfViewer.detectFileType(f.sector);
+			console.log(fileType);
+
+			if (fileType){
+				container = el("filetypeactions");
+				var info = fileType.name;
+				if (fileType.info) info += "<br>" + fileType.info;
+				var intro = "This is a";
+				if (["a","e","i","o","u"].indexOf(info.substr(0,1).toLowerCase())>=0) intro+="n";
+
+				container.innerHTML = intro + " " + info;
+				if (fileType.actions){
+					fileType.actions.forEach(function(action){
+						var div = document.createElement("div");
+						div.innerHTML = action;
+						div.className = "action";
+						div.onclick = function(){fileType.handler.handle(fileType.file,action)};
+						container.appendChild(div);
+					});
+				}
+			}
+		}
 	}
 
 	function el(id){
@@ -163,6 +190,15 @@ var AdfViewer = function(){
 		showFile(sector,false);
 	};
 
+	me.showImage = function(image){
+		showImage(image);
+	};
+
+	me.detectFileType = function(sector){
+		var file = adf.readFileAtSector(sector,true);
+		return FileType.detect(file.content);
+	};
+
 	function showFile(sector,asAscii){
 		currentSector = sector;
 		var file = adf.readFileAtSector(sector,true);
@@ -171,6 +207,7 @@ var AdfViewer = function(){
 
 		el("file").style.display = "block";
 		el("folder").style.display = "none";
+		el("canvas").className = "hidden";
 
 		var hex = el("hex");
 		var ascii = el("ascii");
@@ -192,6 +229,37 @@ var AdfViewer = function(){
 		hex.value = s;
 		ascii.value = a;
 	}
+
+	function showImage(image){
+		el("filelabel").innerHTML = currentFile.name;
+
+		el("file").style.display = "block";
+		el("folder").style.display = "none";
+		el("hex").className = "hidden";
+		el("ascii").className = "hidden";
+
+		if (image){
+			var canvas = el("canvas");
+			var ctx = canvas.getContext("2d");
+			ctx.fillStyle = "black";
+			ctx.fillRect(0,0,canvas.width,canvas.height);
+			el("canvas").className = "";
+
+			var w = canvas.width;
+			var h = w * (image.height/image.width);
+
+			if (h>canvas.height){
+				h = canvas.height;
+				w = h * (image.width/image.height);
+			}
+			var x = (canvas.width - w)>>1;
+			var y = (canvas.height - h)>>1;
+
+			ctx.imageSmoothingEnabled= false;
+			ctx.drawImage(image,x,y,w,h);
+		}
+	}
+
 
 	me.showFolder = function(){
 		el("file").style.display = "none";
@@ -316,3 +384,15 @@ function getUrlParameter(param){
 	}
 }
 
+function loadScript(url,next){
+	var s = document.createElement('script');
+	s.type = 'application/javascript';
+	s.src = url;
+	s.addEventListener('error', function(){
+		console.error("Failed loading script " + url);
+	}, false);
+	s.addEventListener('load', function(){
+		if (next) next();
+	}, false);
+	document.getElementsByTagName('head')[0].appendChild(s);
+}

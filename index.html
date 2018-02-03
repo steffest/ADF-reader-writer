@@ -1,9 +1,15 @@
 <html>
 <head>
     <script src="script/lib/filesaver.js"></script>
+
+    <script src="script/filehandlers/detect.js"></script>
+    <script src="script/filehandlers/iff.js"></script>
+    <script src="script/filehandlers/mod.js"></script>
+
     <script src="script/file.js"></script>
     <script src="script/adf.js"></script>
     <script src="script/main.js"></script>
+
 
     <link rel="stylesheet" type="text/css" href="style/main.css">
     <link rel="stylesheet" type="text/css" href="https://maxcdn.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css">
@@ -17,9 +23,12 @@
             or choose a test disk:
             <select id="diskurl" onchange="AdfViewer.load()">
                 <option value="">---</option>
-                <option value="spudmine7.adf">spudmine7.adf</option>
-                <option value="DeluxePaintIII.adf">DeluxePaintIII.adf</option>
-                <option value="VogueMusicDisk.adf">VogueMusicDisk.adf</option>
+                <option value="disks/dkm.adf">dkm.adf</option>
+                <option value="disks/images.adf">images.adf</option>
+                <option value="disks/spudmine7.adf">spudmine7.adf</option>
+                <option value="disks/DeluxePaintIII.adf">DeluxePaintIII.adf</option>
+                <option value="disks/DeluxePaintIVdata.adf">DeluxePaint IV Images.adf</option>
+                <option value="disks/VogueMusicDisk.adf">VogueMusicDisk.adf</option>
             </select>
         </div>
         Drop your .adf files here
@@ -57,8 +66,12 @@
             <textarea id="ascii">
 
             </textarea>
+
+            <canvas id="canvas" width="800" height="600"></canvas>
             <div class="clear"></div>
         </div>
+
+
 
         <div class="panel" id="raw">
             <div class="diskheader">
@@ -80,7 +93,9 @@
 
     </div>
 
+
     <div class="footer">Read and extract files from Amiga Disk Format (*.adf files) in plain javascript - 2017 by Steffest - <a href="https://github.com/steffest/ADF-reader">source on Github</a></div>
+
 
 </div>
 
@@ -91,6 +106,12 @@
         target.addEventListener("dragenter", AdfViewer.handleDragEnter, false);
         target.addEventListener("dragover", AdfViewer.handleDragOver, false);
         target.addEventListener("drop", AdfViewer.handleDrop, false);
+    }
+
+    var initialFile = getUrlParameter("file");
+    if (initialFile){
+        initialFile = decodeURIComponent(initialFile);
+        AdfViewer.load(initialFile);
     }
 </script>
 
