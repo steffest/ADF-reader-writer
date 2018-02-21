@@ -16,18 +16,16 @@ var adf = function(){
 	me.loadDisk = function(url,next){
 
 		var onLoad = function(buffer){
-			console.log("ADF loaded");
-
 			disk = BinaryStream(buffer,true);
 
 			if (disk.length == 901120){
 				// only standard DD disks are support that can store 880kb
 				// those disks have 1760 sectors of 512 bytes each
-				console.log("880 kb disk");
+				me.getInfo();
 				if (next) next(true);
 			}else{
 				console.error("this does not seem to be an uncompressed ADF file");
-				if (next) next(false);
+				if (next) next(false,disk);
 			}
 		};
 
@@ -44,13 +42,18 @@ var adf = function(){
 
 	};
 
+	me.setDisk = function(_disk){
+		disk = _disk;
+		me.getInfo();
+	};
+
 	me.getInfo = function(){
 		disk.goto(0);
 
 		var info = {};
 		info.diskFormat = disk.readString(3);
 		var diskType = disk.readUbyte();
-		info.diskType = diskType == 0 ? "AmigaDOS 1.2" : 'Fast File System (AmigaDOS 2.04)';
+		info.diskType = (diskType%2) == 0 ? "OFS" : 'FFS';
 
 		// read rootblock
 		disk.goto(880 * SectorSize);
@@ -64,7 +67,13 @@ var adf = function(){
 		var nameLength = disk.readUbyte();
 		info.label = disk.readString(nameLength);
 
+		disk.info = info;
+
 		return info;
+	};
+
+	me.isFFS = function(){
+		return disk.info.diskType === "FFS";
 	};
 
 	me.getSectorType = function(sector){
@@ -94,21 +103,39 @@ var adf = function(){
 
 		if (includeContent){
 			file.content = new Uint8Array(file.size);
+			var index = 0;
 
-			// there are 2 ways to read a file:
+			// there are 2 ways to read a file in OFS:
 			// 1 is to read the list of datablock pointers and collect each datablock
 			// 2 is to follow the linked list of datablocks
 
 			// the second one seems somewhat easier to implement
 			// because otherwise we have to collect each extention block first
-			var index = 0;
-			var nextBlock = block.firstDataBlock;
-			while (nextBlock !== 0){
-				block = readDataBlock(nextBlock);
-				file.content.set(block.content,index);
-				index += block.dataSize;
-				nextBlock = block.nextDataBlock;
+
+			if (me.isFFS()){
+				var sectors = block.pointers.slice();
+				while (block.item && block.item.dataBlockExtention && sectors.length<2000){
+					block = readExtentionBlock(block.item.dataBlockExtention);
+					sectors = sectors.concat(block.pointers);
+				}
+				var maxSize = file.size;
+				sectors.forEach(function(fileSector){
+					block = readDataBlock(fileSector,maxSize);
+					file.content.set(block.content,index);
+					index += block.dataSize;
+					maxSize -= block.dataSize;
+				});
+			}else{
+
+				var nextBlock = block.firstDataBlock;
+				while (nextBlock !== 0){
+					block = readDataBlock(nextBlock);
+					file.content.set(block.content,index);
+					index += block.dataSize;
+					nextBlock = block.nextDataBlock;
+				}
 			}
+
 		}
 
 		return file;
@@ -165,15 +192,26 @@ var adf = function(){
 		return me.readFolderAtSector(880);
 	};
 
-	me.readSector = function(sector){
-		disk.goto(sector * SectorSize);
-		var result = new Uint8Array(SectorSize);
-		for (var i = 0; i<SectorSize; i++){
+	me.readbytes = function(start,count){
+		count = count || 1;
+		disk.goto(start);
+		var result = new Uint8Array(count);
+		for (var i = 0; i<count; i++){
 			result[i] = disk.readUbyte();
 		}
 		return result;
 	};
 
+	me.readSector = function(sector,count){
+		count = count || 1;
+		disk.goto(sector * SectorSize);
+		var size = SectorSize * count;
+		var result = new Uint8Array(size);
+		for (var i = 0; i<size; i++){
+			result[i] = disk.readUbyte();
+		}
+		return result;
+	};
 
 	me.getMD5 = function(){
 		return md5 ? md5(disk.buffer) : "md5 lib not loaded";
@@ -183,38 +221,78 @@ var adf = function(){
 		return disk;
 	};
 
-	me.getTrack = function(){
-		disk.goto(0 * SectorSize);
-		var result = new Uint8Array(SectorSize * 11);
-		for (var i = 0; i<SectorSize*11; i++){
+	me.getTrack = function(trackNumber){
+		trackNumber = trackNumber || 0;
+		var trackSize = SectorSize*11;
+		disk.goto(trackNumber * trackSize);
+		var result = new Uint8Array(trackSize);
+		for (var i = 0; i<trackSize; i++){
 			result[i] = disk.readUbyte();
 		}
 		return result;
 	};
 
-	function readDataBlock(sector){
+	me.getCylinder = function(index){
+		index = index || 0;
+		var size = SectorSize*22;
+		disk.goto(index * size);
+		var result = new Uint8Array(size);
+		for (var i = 0; i<size; i++){
+			result[i] = disk.readUbyte();
+		}
+		return result;
+	};
+
+	me.getBootblock = function(){
+		disk.goto(0);
+		var result = new Uint8Array(SectorSize*2);
+		for (var i = 0; i<SectorSize*2; i++){
+			result[i] = disk.readUbyte();
+		}
+		return result;
+	};
+
+	me.getBoottrack = function(){
+		disk.goto(SectorSize*2);
+		var max = SectorSize*9;
+		var result = new Uint8Array(max);
+		for (var i = 0; i<max; i++){
+			result[i] = disk.readUbyte();
+		}
+		return result;
+	};
+
+	function readDataBlock(sector,size){
 		var block = {};
 		disk.goto(sector * SectorSize);
-		block.type = disk.readLong(); // should be 8 for DATA block
-		block.headerSector  = disk.readLong(); // points to the file HEADER block this data block belongs to;
-		block.number = disk.readLong(); // index in the file datablock list;
-		block.dataSize = disk.readLong();
-		block.nextDataBlock = disk.readLong(); // == 0 if this is the last block
-		block.checkSum = disk.readLong();
 
-		if (block.type == 8){
+		if (me.isFFS()){
+			block.dataSize = Math.min(size,SectorSize);
 			block.content = new Uint8Array(block.dataSize);
-			disk.goto((sector * SectorSize) + 24);
 			for (var i = 0; i<block.dataSize; i++){
 				block.content[i] = disk.readUbyte();
 			}
 		}else{
-			// invalid file
-			block.content = new Uint8Array(0);
-			block.dataSize = 0;
-			block.nextDataBlock = 0;
-		}
+			block.type = disk.readLong(); // should be 8 for DATA block
+			block.headerSector  = disk.readLong(); // points to the file HEADER block this data block belongs to;
+			block.number = disk.readLong(); // index in the file datablock list;
+			block.dataSize = disk.readLong();
+			block.nextDataBlock = disk.readLong(); // == 0 if this is the last block
+			block.checkSum = disk.readLong();
 
+			if (block.type == 8){
+				block.content = new Uint8Array(block.dataSize);
+				disk.goto((sector * SectorSize) + 24);
+				for (i = 0; i<block.dataSize; i++){
+					block.content[i] = disk.readUbyte();
+				}
+			}else{
+				// invalid file
+				block.content = new Uint8Array(0);
+				block.dataSize = 0;
+				block.nextDataBlock = 0;
+			}
+		}
 
 		return block;
 	}
@@ -268,6 +346,25 @@ var adf = function(){
 		var block = {};
 		disk.goto(sector * SectorSize);
 		block.type = disk.readLong(); // should be 16 for LIST block
+
+
+		block.headerSector  = disk.readLong();
+		block.DataBlockCount = disk.readLong();
+		block.dataSize = disk.readLong();
+		block.firstDataBlock = disk.readLong();
+		block.checkSum = disk.readLong();
+
+		disk.goto(sector * SectorSize + 24);
+		block.pointers = [];
+		for (var i = 1; i<= 72; i++){
+			var b = disk.readLong();
+			if (b) block.pointers.unshift(b);
+		}
+		disk.goto((sector * SectorSize) + SectorSize - 8);
+		block.item = {};
+		block.item.dataBlockExtention = disk.readLong();
+
+		return block;
 	}
 
 	function getFileNameAtSector(sector){
@@ -283,6 +380,14 @@ var adf = function(){
 		return long == 4294967293 ? "FILE" : "DIR";
 	}
 
+	me.download = function(){
+		var info = me.getInfo();
+		var b = new Blob([disk.buffer], {type: "application/octet-stream"});
+
+		var fileName = info.label + ".adf";
+		saveAs(b,fileName);
+	};
 
 	return me;
 }();
+
