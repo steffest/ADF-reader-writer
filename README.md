@@ -1,7 +1,10 @@
-# ADF-reader
-Read and extract files from Amiga Disk Format (*.adf) files in plain javascript.  
+# ADF reader/writer
+This is an implementation of the Amiga Filesystem in plain javascript.  
+It can be used to read, extract and write files from/to Amiga Disk Format (*.adf) files.
+
 Currently only standard Amiga Double Density disk are supported (the 880 kb ones)  
-For folder and file parsing, only AmigaDOS formatted disks are supported.  
+HD floppies and HDF support is being worked on.  
+Both Original and Fast File System are supported.
 
 The main module is [adf.js](https://github.com/steffest/ADF-reader/blob/master/script/adf.js)  
 It uses a binary file wrapper at [file.js](https://github.com/steffest/ADF-reader/blob/master/script/file.js) for easy parsing binary data.
@@ -9,10 +12,11 @@ It uses a binary file wrapper at [file.js](https://github.com/steffest/ADF-reade
 The rest of the package is a small demo, providing a simple user interface to browse the disk.  
 Live demo at [http://www.stef.be/adfviewer/](http://www.stef.be/adfviewer/)
 
-It disregards all block checksums and file attributes, which makes it quite useful to salvage files from corrupt disks.  
+It can disregard all block checksums and file attributes, which makes it quite useful to salvage files from corrupt disks.
 For further digging, you can also extract raw sectors for reconstructing deleted files etc.  
 
-I mainly wrote it to quickly inspect .adf files for Amiga music tracker files or [Emerald Mine disks](http://www.emeraldmines.net/) without the need to fire up an Amiga Emulator.
+I mainly wrote it to quickly inspect .adf files for Amiga music tracker files or [Emerald Mine disks](http://www.emeraldmines.net/) without the need to fire up an Amiga Emulator.  
+Basic writing support was added for interaction with the [Scripted Amiga Emulator](https://github.com/naTmeg/ScriptedAmigaEmulator)
 
 ### Main API:
 
@@ -22,6 +26,9 @@ I mainly wrote it to quickly inspect .adf files for Amiga music tracker files or
 
 #### adf.getInfo()
 > Returns some basic info on the disk.
+
+#### adf.getFreeSize()
+> Returns the used and free space of the disk (in blocks and KB)
 
 #### adf.readRootFolder()
 > Returns the files and directories of the root folder of the disk.  
@@ -37,6 +44,27 @@ I mainly wrote it to quickly inspect .adf files for Amiga music tracker files or
 > Returns the file info (and optional content) of the file starting at *sector*  
 > The starting sector is usually obtained from listing a folder.  
 > If *includeContent* is true then the *content* parameter contains the binary content of the file.
+
+#### adf.writeFile(name,buffer,folderSector)
+> Creates a new file into a specific folder.  
+> It returns the sector of the new file on succes or *False* on failure. (e.g. because diskspace is insufficient)
+> Buffer is an ArrayBuffer with the binary content
+> Sequential datablocks are used as much as possible to speed up reading on an actual (or emulated) Amiga." 
+
+#### adf.deleteFileAtSector(sector)
+> Deletes a file  
+> Just as on the Amiga only the entry of the file in its folder is removed, all the header and datablocks are left intact,
+> so it's possible to reconstruct the file as long as no new data is written to the disk. 
+
+#### adf.createFolder(name,folderSector)
+> Creates a folder.  
+> it returns the sector of the new folder  
+
+#### adf.deleteFolderAtSector(sector)
+> Deletes a folder
+> Please note that the folder must me empty so for recursive deletion you should first list the folder,
+> then delete all files and finally delete the folder  
+
 
 ### additional API
 The following methods are available for low level disk reading  
@@ -56,6 +84,14 @@ The following methods are available for low level disk reading
 
 #### readExtentionBlock(sector)
 > Returns a parsed extentionBlock
+
+#### getDisk()
+> Returns the currect disk structure. the "buffer" property contains the binary data of the disk
+
+### Notes
+**Writing support is still a bit experimental**.   
+Don't use it for important stuff, it certainly is **not** production ready.  
+When writing, all dates are ignore for the time being, so "last changed" and "last accessed" dates will not be updated.  
 
 
 

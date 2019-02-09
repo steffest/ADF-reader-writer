@@ -1,8 +1,37 @@
+/*
+
+	MIT License
+
+	Copyright (c) 2019 Steffest - dev@stef.be
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+	
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+	
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+	
+ */
+
+
+
 var AdfViewer = function(){
 	var me = {};
 
 	var currentSector;
 	var currentFile;
+	var currentFolder;
 
 	me.load = function(url){
 		if (!url) url = el("diskurl").value;
@@ -31,6 +60,8 @@ var AdfViewer = function(){
 
 	function listFolder(folder){
 
+        currentFolder = folder;
+
 		var container = el("list");
 		container.innerHTML = "";
 
@@ -39,7 +70,7 @@ var AdfViewer = function(){
 			container.appendChild(createListItem({
 				sector: folder.parent,
 				name: "..",
-				type: "DIR"
+				typeString: "DIR"
 			}));
 			path += "/" + folder.name;
 		}
@@ -69,9 +100,16 @@ var AdfViewer = function(){
 		showInfo(folder);
 	}
 
+	function refreshFolder(){
+		if (currentFolder){
+            var dir = adf.readFolderAtSector(currentFolder.sector);
+            listFolder(dir);
+		}
+	}
+
 	function createListItem(f){
 		var item = document.createElement("div");
-		item.className = "listitem " + f.type;
+		item.className = "listitem " + f.typeString;
 
 		var icon = document.createElement("i");
 		icon.className = "fa fa-folder";
@@ -81,7 +119,7 @@ var AdfViewer = function(){
 		label.innerHTML = f.name;
 
 		var size;
-		if (f.type == "FILE"){
+		if (f.typeString == "FILE"){
 			icon.className = "fa fa-file-o";
 
 			size = document.createElement("span");
@@ -90,7 +128,7 @@ var AdfViewer = function(){
 		}
 
 		item.onclick = function(){
-			if (f.type == "FILE"){
+			if (f.typeString == "FILE"){
 				showInfo(f);
 			}else{
 				var dir = adf.readFolderAtSector(f.sector);
@@ -111,7 +149,7 @@ var AdfViewer = function(){
 
 		var content = "";
 		content += '<h3>' + f.name + '</h3><div class="info"><table border="0" cellspacing="0" cellpadding="2" width="100%">';
-		content += "<tr><td>Type:</td><td>" + f.type + "</td></tr>";
+		content += "<tr><td>Type:</td><td>" + f.typeString + "</td></tr>";
 
 		if (f.size) content += "<tr><td>Size:</td><td>" + formatSize(f.size) + "</td></tr>";
 		if (f.comment) content += "<tr><td>Comment:</td><td>" + f.comment + "</td></tr>";
@@ -122,19 +160,29 @@ var AdfViewer = function(){
 		content += "</table>";
 
 
-		if (f.type == "FILE"){
+		if (f.typeString == "FILE"){
 			currentFile=f;
 			content += "<h4>Actions</h4>";
 			content += '<div class="action" onclick="AdfViewer.showAscii('+f.sector+')">Show as text</div>';
 			content += '<div class="action" onclick="AdfViewer.showHex('+f.sector+')">Show as hex</div>';
 			content += '<div class="action" onclick="AdfViewer.download('+f.sector+')">Download</div>';
+			content += '<div class="action" onclick="AdfViewer.delete('+f.sector+')">Delete file</div>';
 			content += '<div id="filetypeactions"></div>';
 		}
+
+        content += "<h4>Folder</h4>";
+        content += '<div class="action" onclick="AdfViewer.upload()">Upload file</div>';
+        content += '<div class="action" onclick="AdfViewer.createFolder()">Create folder</div>';
+
+        if (currentFolder.sector !== 880){
+            content += '<div class="action" onclick="AdfViewer.deleteFolder()">Delete folder</div>';
+		}
+
 
 		content += "</div>";
 		container.innerHTML = content;
 
-		if (f.type == "FILE"){
+		if (f.typeString == "FILE"){
 			var fileType = AdfViewer.detectFileType(f.sector);
 			console.log(fileType);
 
@@ -269,6 +317,11 @@ var AdfViewer = function(){
 
 	me.showRoot = function(){
 		listFolder(adf.readRootFolder());
+
+		var disk = adf.getDisk();
+        var container = el("fileinfo");
+        container.innerHTML += "<br><div class='info'><table border='0' width='100%'><tr><td align='right' width='99%'>Used:</td><td align='right' width='1%'>" + disk.used + "kb</td></tr><tr><td align='right'>Free:</td><td align='right'>" + disk.free + "kb</td></tr></table></div>"  ;
+
 	};
 
 	me.download = function(sector){
@@ -281,6 +334,54 @@ var AdfViewer = function(){
 		var fileName = file.name;
 		saveAs(b,fileName);
 	};
+
+    me.delete = function(sector){
+        sector = sector || currentSector;
+        adf.deleteFileAtSector(sector,true);
+        refreshFolder();
+    };
+
+    me.upload = function(){
+        var input = document.createElement('input');
+        input.type = 'file';
+        input.onchange = function(e){
+            console.log("file uploaded");
+            var files = e.target.files;
+            if (files.length){
+                var file = files[0];
+
+                var reader = new FileReader();
+                reader.onload = function(){
+
+                    //console.error(file.name,reader.result);
+
+                    adf.writeFile(file.name,reader.result,currentFolder.sector);
+                    refreshFolder();
+
+                    //me.processFile(reader.result,file.name,function(isMod){
+                     //   if (UI) UI.setStatus("Ready");
+                    //});
+                };
+                reader.readAsArrayBuffer(file);
+            }
+        };
+        input.click();
+    };
+
+    me.createFolder = function(){
+        adf.createFolder("test",currentFolder.sector);
+        refreshFolder();
+    };
+
+    me.deleteFolder = function(){
+        var deleted = adf.deleteFolderAtSector(currentFolder.sector);
+        if (deleted){
+            var up = document.getElementById("list").querySelectorAll(".DIR")[0];
+            if (up) up.click();
+		}else{
+        	alert("can't delete folder, it's not empty");
+		}
+    };
 
 	me.showSector = function(sector){
 		currentSector = sector || 0;

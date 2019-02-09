@@ -1,3 +1,29 @@
+/*
+
+	MIT License
+
+	Copyright (c) 2019 Steffest - dev@stef.be
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+	
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+	
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+	
+ */
+
 function BinaryStream(arrayBuffer, bigEndian){
 	var obj = {
 		index: 0,
@@ -32,7 +58,7 @@ function BinaryStream(arrayBuffer, bigEndian){
 		return b;
 	};
 
-	obj.writeUByte = function(value,position){
+	obj.writeUbyte = function(value,position){
 		setIndex(position);
 		this.dataView.setUint8(this.index,value);
 		this.index++;
@@ -51,17 +77,17 @@ function BinaryStream(arrayBuffer, bigEndian){
 		this.index+=4;
 	};
 
-	obj.readBytes = function(len,position) {
+	obj.readBytes = function(len,position,buffer) {
 		setIndex(position);
-		var buffer = new Uint8Array(len);
+
+
 		var i = this.index;
 		var src = this.dataView;
 		if ((len += i) > this.length) len = this.length;
 		var offset = 0;
 
-		for (; i < len; ++i)
-			buffer.setUint8(offset++, this.dataView.getUint8(i));
-		this.index = len;
+		for (; i < len; ++i) buffer.setUint8(offset++, this.dataView.getUint8(i));
+		this.index += len;
 		return buffer;
 	};
 
@@ -155,6 +181,19 @@ function BinaryStream(arrayBuffer, bigEndian){
 	obj.length = arrayBuffer.byteLength;
 
 	return obj;
+
+	// todo
+	/*
+
+
+	check if copying typed arraybuffers is faster then reading dataview
+
+	 var dstU8 = new Uint8Array(dst, dstOffset, byteLength);
+  	 var srcU8 = new Uint8Array(src, srcOffset, byteLength);
+  	 dstU8.set(srcU8);
+
+
+	 */
 }
 
 function loadFile(url,next) {
