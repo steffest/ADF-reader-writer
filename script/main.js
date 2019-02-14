@@ -25,13 +25,17 @@
  */
 
 
-
 var AdfViewer = function(){
 	var me = {};
 
 	var currentSector;
 	var currentFile;
 	var currentFolder;
+	
+	var dialogFunction;
+	var TYPE_FILE = 1;
+	var TYPE_FOLDER = 2;
+	
 
 	me.load = function(url){
 		if (!url) url = el("diskurl").value;
@@ -167,6 +171,7 @@ var AdfViewer = function(){
 			content += '<div class="action" onclick="AdfViewer.showHex('+f.sector+')">Show as hex</div>';
 			content += '<div class="action" onclick="AdfViewer.download('+f.sector+')">Download</div>';
 			content += '<div class="action" onclick="AdfViewer.delete('+f.sector+')">Delete file</div>';
+			content += '<div class="action" onclick="AdfViewer.rename('+f.sector+',1)">Rename file</div>';
 			content += '<div id="filetypeactions"></div>';
 		}
 
@@ -176,6 +181,7 @@ var AdfViewer = function(){
 
         if (currentFolder.sector !== 880){
             content += '<div class="action" onclick="AdfViewer.deleteFolder()">Delete folder</div>';
+			content += '<div class="action" onclick="AdfViewer.rename(0,2)">Rename folder</div>';
 		}
 
 
@@ -320,8 +326,14 @@ var AdfViewer = function(){
 
 		var disk = adf.getDisk();
         var container = el("fileinfo");
-        container.innerHTML += "<br><div class='info'><table border='0' width='100%'><tr><td align='right' width='99%'>Used:</td><td align='right' width='1%'>" + disk.used + "kb</td></tr><tr><td align='right'>Free:</td><td align='right'>" + disk.free + "kb</td></tr></table></div>"  ;
+        container.innerHTML += ""  ;
 
+		el("filemanager").classList.add("disk");
+
+		var diskspace = el("diskspace");
+		diskspace.innerHTML = "Used: <b>" + disk.used + "</b> kb, Free: <b>" + disk.free + "</b> kb";
+		
+	
 	};
 
 	me.download = function(sector){
@@ -336,10 +348,33 @@ var AdfViewer = function(){
 	};
 
     me.delete = function(sector){
-        sector = sector || currentSector;
-        adf.deleteFileAtSector(sector,true);
-        refreshFolder();
-    };
+		sector = sector || currentSector;
+		adf.deleteFileAtSector(sector,true);
+		refreshFolder();
+	};
+
+	me.rename = function(sector,type){
+		
+		if (!sector && type === TYPE_FOLDER) sector = currentFolder.sector;
+		sector = sector || currentSector;
+		
+		var name = adf.readHeaderBlock(sector).name;
+
+		me.showDialog({
+			title:"Rename " + (type === TYPE_FILE ? "file":"folder"),
+			message:"Please enter the new name",
+			inputValue: name,
+			callback:function(confirm){
+				if (confirm){
+					var value = document.getElementById("dialoginput").value;
+					if (value){
+						adf.renameFileOrFolderAtSector(sector,value);
+						refreshFolder();
+					}
+				}
+			}
+		});
+	};
 
     me.upload = function(){
         var input = document.createElement('input');
@@ -352,15 +387,8 @@ var AdfViewer = function(){
 
                 var reader = new FileReader();
                 reader.onload = function(){
-
-                    //console.error(file.name,reader.result);
-
                     adf.writeFile(file.name,reader.result,currentFolder.sector);
                     refreshFolder();
-
-                    //me.processFile(reader.result,file.name,function(isMod){
-                     //   if (UI) UI.setStatus("Ready");
-                    //});
                 };
                 reader.readAsArrayBuffer(file);
             }
@@ -369,8 +397,21 @@ var AdfViewer = function(){
     };
 
     me.createFolder = function(){
-        adf.createFolder("test",currentFolder.sector);
-        refreshFolder();
+		
+    	me.showDialog({
+			title:"Create New Folder" ,
+			message:"Please enter the name of the new folder",
+			inputValue: "new folder",
+			callback:function(confirm){
+				if (confirm){
+					var value = document.getElementById("dialoginput").value;
+					if (value){
+						adf.createFolder(value,currentFolder.sector);
+						refreshFolder();
+					}
+				}
+			}
+		});
     };
 
     me.deleteFolder = function(){
@@ -457,6 +498,23 @@ var AdfViewer = function(){
 			};
 			reader.readAsArrayBuffer(file);
 		}
+	};
+
+	me.dialog = function(confirm){
+		if (dialogFunction) dialogFunction(confirm);
+		dialogFunction = false;
+
+		var dialog=document.getElementById("modaldialog");
+		dialog.className = "";
+	};
+
+	me.showDialog = function(config){
+		var dialog=document.getElementById("modaldialog");
+		document.getElementById("dialogtitle").innerHTML = config.title || "Please confirm";
+		document.getElementById("dialogcontent").innerHTML = config.message || "";
+		document.getElementById("dialoginput").value = config.inputValue || "";
+		dialogFunction = config.callback;
+		dialog.className = "active";
 	};
 
 	function formatHex(nr){

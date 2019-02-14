@@ -42,6 +42,10 @@ textarea{
     float: right;
 }
 
+#filemanager{
+    position: relative;    
+}
+
 #filemanager .panel{
     border: 1px solid silver;
 }
@@ -59,6 +63,31 @@ textarea{
     background-repeat: no-repeat;
 
     padding: 4px 4px 4px 24px;
+}
+
+#filemanager.disk .caption .diskmenu{
+    display: initial;
+}
+
+.caption .diskmenu{
+    float: right;
+    color: rgba(255, 255, 255, 0.7);
+    padding-right: 4px;
+    display: none;
+}
+
+.caption .diskmenu b{
+    color: white;
+    font-weight: normal;
+}
+
+.caption .diskmenu .fa-download{
+    padding-left: 10px;    
+}
+
+.caption .diskmenu .fa-download:hover{
+    color: white;
+    cursor: pointer;
 }
 
 .diskheader{
@@ -228,3 +257,71 @@ textarea{
 #filetypeactions .action{
     text-transform: capitalize;
 }
+
+
+#filemanager #modaldialog{
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    right: 0;
+    background-color: rgba(0, 0, 0, 0.2);
+    display: none;
+    z-index: 1000;
+}
+
+#filemanager #modaldialog.active{
+    display: block;
+}
+
+#filemanager #modaldialog .dialog{
+    margin: 20px auto;
+    border: 1px solid silver;
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.2);
+    width: 300px;
+    max-width: 100%;
+}
+
+#filemanager #modaldialog .dialog #dialogtitle{
+    background-color: #e8e8e8;
+    padding: 4px;
+    font-size: 14px;
+    margin: 0;
+}
+
+#filemanager #modaldialog .dialog .content{
+    background-color: #fafafa;
+    padding: 20px;
+    min-height: 100px;
+}
+
+#filemanager #modaldialog .dialog .inputbox{
+    width: 100%;
+    padding: 8px;
+    border: 1px solid silver;
+    text-align: center;
+    margin-top: 10px;
+}
+
+#filemanager #modaldialog .dialog .buttons{
+    text-align: center;
+    padding: 8px;
+    background-color: #f6f6f6;
+}
+
+#filemanager #modaldialog .dialog .buttons .btn{
+    border: 1px solid silver;
+    text-align: center;
+    padding: 10px 20px;
+    background-color: #eeeeee;
+    margin: 2px 12px;
+    display: inline-block;
+    min-width: 100px;
+}
+
+#filemanager #modaldialog .dialog .buttons .btn:hover{
+    background-color: white;
+    cursor: pointer;
+}
+
+

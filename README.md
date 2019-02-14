@@ -65,6 +65,11 @@ Basic writing support was added for interaction with the [Scripted Amiga Emulato
 > Please note that the folder must me empty so for recursive deletion you should first list the folder,
 > then delete all files and finally delete the folder  
 
+#### adf.renameFileOrFolderAtSector(sector,newname)
+> Renames a file or a folder.  
+> the maximum length of a name is 30 chars.  
+> the characters / and : are not allowed  
+
 
 ### additional API
 The following methods are available for low level disk reading  

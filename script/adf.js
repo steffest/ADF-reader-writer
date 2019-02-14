@@ -257,7 +257,6 @@ var adf = function(){
 
             while (hashTableItem){
                 var linkedHeaderBlock = me.readHeaderBlock(hashTableItem);
-                console.error(linkedHeaderBlock);
                 if (linkedHeaderBlock.linkedSector === sector){
                     console.log("file found, linked to " + hashTableItem);
                     if (linkedFile){
@@ -271,7 +270,6 @@ var adf = function(){
                     break;
                 }else{
                     hashTableItem = linkedHeaderBlock.linkedSector;
-                    console.error(hashTableItem);
                 }
 			}
 		}
@@ -299,7 +297,7 @@ var adf = function(){
 
     me.deleteFolderAtSector = function(sector){
 
-        console.log("delete folder At Sector " + sector);
+        console.log("delete folder At sector " + sector);
         // note: the folder needs to be empty before we can delete it
 		// recursive delete not yet implemented
 
@@ -523,6 +521,37 @@ var adf = function(){
         
         return sector;
 	};
+    
+    
+    me.renameFileOrFolderAtSector=function(sector,newName){
+		console.log("rename File or Folder At Sector " + sector);
+
+		var fileHeaderBlock = readHeaderBlock(sector);
+		var folderSector = fileHeaderBlock.parent;
+		var linkedFile = fileHeaderBlock.linkedSector;
+		var i,max;
+		
+		// update object in Folder;
+		var folderHeaderBlock = readHeaderBlock(folderSector);
+
+		var oldIndex = getNameHashIndex(fileHeaderBlock.name);
+		var newIndex = getNameHashIndex(newName);
+		
+		if (oldIndex !== newIndex){
+			// move from oldIndex, keeping the hashchain intact
+			folderHeaderBlock.pointers[oldIndex] = fileHeaderBlock.linkedSector || 0;
+			
+			// move to new position
+			fileHeaderBlock.linkedSector = folderHeaderBlock.pointers[newIndex] || 0;
+			folderHeaderBlock.pointers[newIndex] = sector;
+
+			writeHeaderBlock(folderSector,folderHeaderBlock);
+		}
+
+		fileHeaderBlock.name = newName;
+		writeHeaderBlock(sector,fileHeaderBlock);
+		
+	};
 
 	me.readRootFolder = function(){
 		return me.readFolderAtSector(rootSector);
@@ -642,8 +671,7 @@ var adf = function(){
 				block.dataSize = 0;
 				block.nextDataBlock = 0;
 			}
-
-			console.error(block);
+			
 		}
 
 		return block;
@@ -761,10 +789,8 @@ var adf = function(){
 
 	me.rewriteBlock = function(sector){
 		var block = readHeaderBlock(sector);
-		console.error(block);
 		writeHeaderBlock(sector,block);
         var newBlock = readHeaderBlock(sector);
-        console.error(newBlock);
 	};
 
     function writeHeaderBlock(sector,block){
