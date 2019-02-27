@@ -6,6 +6,7 @@
     <script src="script/filehandlers/iff.js"></script>
     <script src="script/filehandlers/mod.js"></script>
     <script src="script/filehandlers/amos.js"></script>
+    <script src="script/filehandlers/icon.js"></script>
 
     <script src="script/file.js"></script>
     <script src="script/adf.js"></script>
@@ -39,7 +40,22 @@
     </div>
 
     <div id="filemanager">
-        <div class="caption amiga">ADF file</div>
+        <div id="modaldialog">
+            <div class="dialog">
+                <h1 id="dialogtitle">Title</h1>
+                <div class="content">
+                    <div id="dialogcontent"></div>
+                    <div class="input">
+                        <input type="text" id="dialoginput" class="inputbox">
+                    </div>
+                </div>
+                <div class="buttons">
+                    <div class="btn ok" onclick="AdfViewer.dialog(true)">OK</div>
+                    <div class="btn cancel" onclick="AdfViewer.dialog(false)">Cancel</div>
+                </div>
+            </div>
+        </div>
+        <div class="caption amiga"><span class="diskmenu"><span id="diskspace"></span> <i class="fa fa-download" aria-hidden="true" onclick="adf.download()" title="Download disk"></i> </span> ADF file</div>
         <div class="panel" id="folder">
             <div class="diskheader">
                 <div class="button right" onclick="AdfViewer.showSector(0)">Read Raw sectors</div>

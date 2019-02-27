@@ -151,6 +151,24 @@ function BinaryStream(arrayBuffer, bigEndian){
 		return w;
 	};
 
+    obj.readBits = function(count,bitPosition,position){
+
+        // this reads $count bits, starting from byte $position and bit position $bitPosition
+        // bitPosition can be > 8 , count should be <= 8;
+
+        position = position === 0 ? position : position || obj.index;
+        var bytePosition = position + (bitPosition >> 3);
+        setIndex(bytePosition);
+
+        bitPosition = bitPosition - ((bitPosition >> 3) << 3);
+
+        var bits = byte2Bits(this.dataView.getUint8(this.index));
+
+        if ((bitPosition + count)>8) bits = bits.concat(byte2Bits(this.dataView.getUint8(this.index+1)));
+
+        return bits2Int(bits.slice(bitPosition,bitPosition+count));
+    };
+
 	obj.clear = function(length){
 		obj.fill(0,length);
 	};
@@ -185,15 +203,35 @@ function BinaryStream(arrayBuffer, bigEndian){
 	// todo
 	/*
 
-
 	check if copying typed arraybuffers is faster then reading dataview
 
 	 var dstU8 = new Uint8Array(dst, dstOffset, byteLength);
   	 var srcU8 = new Uint8Array(src, srcOffset, byteLength);
   	 dstU8.set(srcU8);
 
-
 	 */
+
+	function byte2Bits(b){
+	    return [
+	        b>>7 & 1,
+            b>>6 & 1,
+            b>>5 & 1,
+            b>>4 & 1,
+            b>>3 & 1,
+            b>>2 & 1,
+            b>>1 & 1,
+            b    & 1
+        ]
+    }
+
+    function bits2Int(bits){
+        var v = 0;
+        var len = bits.length-1;
+        for (var i = 0; i<=len ; i++){
+            v += bits[i] << (len-i);
+        }
+        return v;
+    }
 }
 
 function loadFile(url,next) {
