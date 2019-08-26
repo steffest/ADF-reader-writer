@@ -1,14 +1,59 @@
+/*
+
+	MIT License
+
+	Copyright (c) 2019 Steffest - dev@stef.be
+
+	Permission is hereby granted, free of charge, to any person obtaining a copy
+	of this software and associated documentation files (the "Software"), to deal
+	in the Software without restriction, including without limitation the rights
+	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+	copies of the Software, and to permit persons to whom the Software is
+	furnished to do so, subject to the following conditions:
+	
+	The above copyright notice and this permission notice shall be included in all
+	copies or substantial portions of the Software.
+	
+	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+	SOFTWARE.
+	
+ */
+
 var Icon = function(){
 	// Detect and decode Amiga .info icon files
 	// icon format info on 
 	// 		http://krashan.ppa.pl/articles/amigaicons/
 	//		http://www.evillabs.net/index.php/Amiga_Icon_Formats
+	// all Amiga icons formats are supported except newIcons
 
 	var me = {};
 
 	me.fileTypes={
 		ICON: {name: "Icon file", actions:["show"], inspect: true}
 	};
+
+	var WB13Palette = [
+		[85,170,255],
+		[255,255,255],
+		[0,0,0],
+		[255,136,0]
+	];
+
+	var MUIPalette = [
+		[149,149,149],
+		[0,0,0],
+		[255,255,255],
+		[59,103,162],
+		[123,123,123],
+		[175,175,175],
+		[170,144,124],
+		[255,169,151]
+	];
 
 	me.parse = function(file,decodeBody){
 		var icon = {};
@@ -19,8 +64,8 @@ var Icon = function(){
 		icon.topEdge = file.readWord();
 		icon.width = file.readWord();
 		icon.height = file.readWord();
+        icon.flags = file.readWord();
 		icon.activation = file.readWord();
-		icon.gadgetType = file.readWord();
 		icon.gadgetType = file.readWord();
 		icon.gadgetRender = file.readDWord();
 		icon.selectRender = file.readDWord();
@@ -90,14 +135,12 @@ var Icon = function(){
 			icon.drawerData2.ViewModes = file.readWord();
 		}
 		
-		
-		
+
 		if (file.index<file.length){
 			// we're not at the end of the file
 			// check for FORM ICON file
 
 			console.log("checking for IFF structure");
-
 
 			var id = file.readString(4);
 			if (id === "FORM"){
@@ -115,14 +158,13 @@ var Icon = function(){
 
 		}
 		
-		
 		return icon;
 	};
 
 	me.detect=function(file){
 		var id = file.readWord(0);
 		if (id === 0xE310){
-				return FILETYPE.ICON;
+				return (typeof FILETYPE !== "undefined") ? FILETYPE.ICON : true;
 		}
 	};
 
@@ -132,69 +174,65 @@ var Icon = function(){
 
 		return result;
 	};
+	
+	me.getImage = function(icon,index){
+		index = index || 0;
 
+		if (icon.colorIcon){
+			return me.toCanvas(icon.colorIcon,index);
+		}else{
+			var img = index?icon.img2:icon.img;
+			if (img){
+				img.palette = icon.userData ? MUIPalette : WB13Palette;
+				return(me.toCanvas(img));
+			}
+		}
+	};
+	
 	me.handle = function(file,action){
 		console.log(action);
 		if (action === "show"){
 			var icon = me.parse(file,true);
-
-			if (icon.colorIcon){
-                if (AdfViewer) AdfViewer.showImage(me.toCanvas(icon.colorIcon));
-			}else{
-                if (icon.img){
-                    // TODO: how do we distinguish between OS 1.3 and 2 palette?
-
-                    var WB13Palette = [
-                        [85,170,255],
-                        [255,255,255],
-                        [0,0,0],
-                        [255,136,0]
-                    ];
-
-                    var MUIPalette = [
-                        [149,149,149],
-                        [0,0,0],
-                        [255,255,255],
-                        [59,103,162],
-                        [123,123,123],
-                        [175,175,175],
-                        [170,144,124],
-                        [255,169,151]
-                    ];
-
-                    icon.img.palette = icon.userData ? MUIPalette : WB13Palette;
-
-                    if (AdfViewer) AdfViewer.showImage(me.toCanvas(icon.img));
-                }
-			}
+			var canvas = me.getImage(icon,0);
+			if (AdfViewer) AdfViewer.showImage(canvas);
 		}
 	};
 
-	me.toCanvas = function(img){
+	me.toCanvas = function(img,index){
 		var canvas = document.createElement("canvas");
 		canvas.width = img.width;
 		canvas.height = img.height;
 		var pixelWidth = 1;
 		var ctx = canvas.getContext("2d");
-
+		
 		if (img.states){
-			// colorIcon
-			var state = img.states[0];
-            for (var y=0;y<img.height;y++){
-                for (var x=0;x<img.width;x++){
-                    var pixel = state.pixels[y*img.width + x];
-                    var color = state.palette[pixel] || [0,0,0];
-                    ctx.fillStyle = "rgba("+color[0]+","+color[1]+","+color[2]+",1)";
-                    ctx.fillRect(x*pixelWidth, y, pixelWidth, 1 );
-                }
-            }
+			// colorIcon or ARGB
+			var state = img.states[index || 0];
+			if (state){
+				for (var y=0;y<img.height;y++){
+					for (var x=0;x<img.width;x++){
+						var pixel = state.pixels[y*img.width + x];
+						if (state.rgba){
+							var color = pixel;
+						}else{
+							color = state.palette[pixel] || [0,0,0,0];
+						}
+						if (color.length < 4) color[3] = 1;
+						if (pixel === 0) color = [0,0,0,0];
+						ctx.fillStyle = "rgba("+ color.join(",") + ")";
+						ctx.fillRect(x*pixelWidth, y, pixelWidth, 1 );
+					}
+				}
+			}
 		}else{
             // WB Icon
             for (var y=0;y<img.height;y++){
                 for (var x=0;x<img.width;x++){
                     var pixel = img.pixels[y][x];
-                    var color = img.palette[pixel] || [0,0,0];
-                    ctx.fillStyle = "rgba("+color[0]+","+color[1]+","+color[2]+",1)";
+                    var color = img.palette[pixel] || [0,0,0,0];
+					if (color.length < 4) color[3] = 1;
+					if (pixel === 0) color = [0,0,0,0];
+					ctx.fillStyle = "rgba("+ color.join(",") + ")";
                     ctx.fillRect(x*pixelWidth, y, pixelWidth, 1 );
                 }
             }
@@ -274,7 +312,7 @@ var Icon = function(){
 			var chunk = readChunk();
 			index += chunk.size + 8;
 			if (chunk.size%2 === 1) index++;
-
+			
 			switch (chunk.name){
 				case "FACE":
 					img.width = file.readUbyte() + 1;
@@ -334,7 +372,7 @@ var Icon = function(){
 
 					if (state.paletteSize){
                         file.goto(paletteDataOffset);
-                        var rgb = []
+                        var rgb = [];
 
                         if (state.paletteCompression){
                             var max = (state.paletteSize-1) * 8;
@@ -368,10 +406,61 @@ var Icon = function(){
 							}
 						}
 					}
-
+					
+					if (img.states.length){
+						window.pp2 = state.pixels;
+					}else{
+						window.pp1 = state.pixels;
+					}
+					
 					img.states.push(state);
 
 
+					break;
+				case "ARGB":
+					// zlib compressed
+					// found some info/structure on https://amigaworld.net//modules/newbb/viewtopic.php?viewmode=flat&order=0&topic_id=34625&forum=15&post_id=639101#639062
+
+					console.log("decoding ARGB data");
+					
+					var state = {};
+
+					state.rgba = true;
+					state.pixels = [];
+					state.palette = [];
+					
+					
+					for (var offset = 0; offset<10;offset++){
+						// no idea what this data structure is ...
+						// first DWORD always seem to be 1?
+						state.dummy = file.readUbyte();
+						//console.log(state.dummy);
+					}
+					
+					var size = chunk.size-offset;
+					var data = new Uint8Array(size);
+					for (var i = 0; i<size; i++){
+						data[i] = file.readUbyte();
+					}
+
+					try{
+						var a = new Zlib.Inflate(data).decompress();
+						
+						for (var y = 0; y<img.height; y++){
+							for (var x = 0; x<img.width; x++){
+								var pixelIndex = (y*img.width + x) * 4;
+								var color = [a[pixelIndex+1]||0,a[pixelIndex+2]||0,a[pixelIndex+3]||0,(a[pixelIndex]||0)/255];
+								state.pixels.push(color);
+							}
+						}
+						
+						img.states.push(state);
+						
+						
+					}catch (e) {
+						console.log("invalid zlib structure");
+					}
+					
 					break;
 				default:
 					console.log("unhandled IFF chunk: " + chunk.name);
@@ -379,14 +468,13 @@ var Icon = function(){
 			}
 			
 		}
-
-
-
+		
 		return img;
 	}
 
 
-	if (FileType) FileType.register(me);
+	if (typeof FileType !== "undefined") FileType.register(me);
 
 	return me;
+	
 }();
