@@ -9,6 +9,10 @@
 	Thanks Laurent Clevy.
 
 	OFS and FFS are supported
+
+	There are some sane limitations in place to keep things performant:
+	- max size for a single file is 20MB
+	- max size for a hardfile is about 2GB, depending on the browser
 	
 	MIT License
 
@@ -47,10 +51,22 @@ var adf = function(){
 		var onLoad = function(buffer){
 			disk = BinaryStream(buffer,true);
 
-			if (disk.length == 901120){
-				// only standard DD disks are support that can store 880kb
-				// those disks have 1760 sectors of 512 bytes each
-				me.getInfo();
+			// standard DD disk that can store 880kb have a disk.length == 901120
+			// those disks have 1760 sectors of 512 bytes each
+
+			var passed = false;
+
+			SectorCount = disk.length/SectorSize;
+			if ((parseInt(SectorCount) === SectorCount) && SectorCount%2 === 0){
+				rootSector = SectorCount/2;
+				var info = me.getInfo();
+				console.log(info);
+				if (info.diskFormat === "DOS"){
+					passed = true;
+				}
+			}
+
+			if (passed){
 				if (next) next(true);
 			}else{
 				console.error("this does not seem to be an uncompressed ADF file");
@@ -73,7 +89,7 @@ var adf = function(){
 
 	me.setDisk = function(_disk){
 		disk = _disk;
-		me.getInfo();
+		return me.getInfo();
 	};
 
 	me.getInfo = function(){
@@ -140,13 +156,16 @@ var adf = function(){
 			// because otherwise we have to collect each extention block first
             var block = file;
 			if (me.isFFS()){
-				// note .. shouldn't this be reversed ?
-				var sectors = block.pointers.slice();
-				while (block.dataBlockExtention && sectors.length<2000){
+				var sectors = block.pointers.slice().reverse();
+
+				// let's set a sane max file size of 20MB
+				while (block.dataBlockExtention && sectors.length<40960){
 					block = readExtentionBlock(block.dataBlockExtention);
-					sectors = sectors.concat(block.pointers);
+					sectors = sectors.concat(block.pointers.slice().reverse());
+					console.error("appending");
 				}
 				var maxSize = file.size;
+
 				sectors.forEach(function(fileSector){
 					if (fileSector){
                         block = readDataBlock(fileSector,maxSize);
@@ -291,6 +310,7 @@ var adf = function(){
 		});
 
 		// update bitmap
+		// TODO: with HDF, how do we know which bitmapblock to use?
 		writeBitmapBlock(disk.bitmapBlock,disk.bitmap);
 
     };
@@ -1096,20 +1116,34 @@ var adf = function(){
 
         var rootBlock =  readHeaderBlock(rootSector);
 
-        // let's assume wse only have one bitmapBlock ...
-		disk.bitmapBlock = rootBlock.bitmapBlocks[0];
-        var bitmapBlock = readBitmapBlock(rootBlock.bitmapBlocks[0]);
+        console.error(rootBlock);
 
-        var max = SectorCount;
-        var count = 0;
-        for (var i = 0;i<max;i++){
-            count += bitmapBlock.map[i];
+		var count = 0;
+		var countIndex = 0;
+
+		for (var ri = 0; ri<rootBlock.bitmapBlocks.length; ri++){
+			var sector = rootBlock.bitmapBlocks[ri];
+			if (sector>0){
+				var bitmapBlock = readBitmapBlock(sector);
+				var max = bitmapBlock.map.length;
+				for (var i = 0;i<max;i++){
+					if (countIndex<SectorCount){
+						count += bitmapBlock.map[i];
+						countIndex++;
+					}
+				}
+			}
 		}
+
+        // let's assume we only have one bitmapBlock ...
+		disk.bitmapBlock = rootBlock.bitmapBlocks[0];
+
+
         bitmapBlock.usedBlocks = count;
-        disk.freeBlocks = max-count;
+        disk.freeBlocks = SectorCount-count;
 		disk.free = count*0.5;
-		disk.used = 880 - disk.free;
-		disk.bitmap = bitmapBlock.map;
+		disk.used = (SectorCount/2) - disk.free;
+		disk.bitmap = disk.bitmapBlock.map;
 		return disk;
 
 	};

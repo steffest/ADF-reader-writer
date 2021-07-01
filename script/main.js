@@ -496,6 +496,12 @@ var AdfViewer = function(){
 			reader.onload = function(){
 				me.load(reader.result);
 			};
+			reader.onerror = function(){
+				console.error("Failed to read file!",reader.error);
+				el("feedback").innerHTML = "Sorry, something went wrong reading this file.";
+				el("feedback").style.display = "block";
+				reader.abort();
+			};
 			reader.readAsArrayBuffer(file);
 		}
 	};
