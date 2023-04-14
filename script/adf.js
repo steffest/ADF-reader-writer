@@ -13,10 +13,10 @@
 	There are some sane limitations in place to keep things performant:
 	- max size for a single file is 20MB
 	- max size for a hardfile is about 2GB, depending on the browser
-	
+
 	MIT License
 
-	Copyright (c) 2019 Steffest - dev@stef.be
+	Copyright (c) 2019-2023 Steffest - dev@stef.be
 
 	Permission is hereby granted, free of charge, to any person obtaining a copy
 	of this software and associated documentation files (the "Software"), to deal
@@ -126,16 +126,16 @@ var adf = function(){
 	};
 
 	me.getSectorType = function(sector){
-		if (sector == 0) return "BOOTBLOCK";
-		if (sector == rootSector) return "ROOTBLOCK";
-		if (sector == disk.bitmapBlock) return "BITMAP BLOCK";
+		if (sector === 0) return "BOOTBLOCK";
+		if (sector === rootSector) return "ROOTBLOCK";
+		if (disk.bitmapBlocks.indexOf(sector)) return "BITMAP BLOCK";
 
 		disk.goto(sector * SectorSize);
 		var long = disk.readLong();
-		if (long == 2) return "HEADER";
-		if (long == 8) return "DATA BLOCK";
-		if (long == 16) return "LIST (File extension block)";
-		if (long == 33) return "DIRCACHE (Directory cache block)";
+		if (long === 2) return "HEADER";
+		if (long === 8) return "DATA BLOCK";
+		if (long === 16) return "LIST (File extension block)";
+		if (long === 33) return "DIRCACHE (Directory cache block)";
 
 		return "EMPTY (or this is not a DOS disk)"
 	};
@@ -153,16 +153,16 @@ var adf = function(){
 			// 2 is to follow the linked list of datablocks
 
 			// the second one seems somewhat easier to implement
-			// because otherwise we have to collect each extention block first
+			// because otherwise we have to collect each extension block first
             var block = file;
 			if (me.isFFS()){
 				var sectors = block.pointers.slice().reverse();
 
 				// let's set a sane max file size of 20MB
-				while (block.dataBlockExtention && sectors.length<40960){
-					block = readExtentionBlock(block.dataBlockExtention);
+				while (block.dataBlockExtension && sectors.length<40960){
+					block = readExtensionBlock(block.dataBlockExtension);
 					sectors = sectors.concat(block.pointers.slice().reverse());
-					console.error("appending");
+					console.log("appending block");
 				}
 				var maxSize = file.size;
 
@@ -191,7 +191,7 @@ var adf = function(){
 	};
 
 	me.readFolderAtSector = function(sector){
-		console.error("readFolderAtSector " + sector);
+		//console.error("readFolderAtSector " + sector);
 
 		var directory = readHeaderBlock(sector);
         directory.folders = [];
@@ -296,8 +296,8 @@ var adf = function(){
         var sectors=[sector];
         sectors = sectors.concat(fileHeaderBlock.pointers);
         var block = fileHeaderBlock;
-        while (block.dataBlockExtention && sectors.length<2000){
-            block = readExtentionBlock(block.dataBlockExtention);
+        while (block.dataBlockExtension && sectors.length<2000){
+            block = readExtensionBlock(block.dataBlockExtension);
             sectors = sectors.concat(block.pointers);
         }
 
@@ -311,7 +311,8 @@ var adf = function(){
 
 		// update bitmap
 		// TODO: with HDF, how do we know which bitmapblock to use?
-		writeBitmapBlock(disk.bitmapBlock,disk.bitmap);
+		writeBitmapBlock(disk.bitmapBlocks[0],disk.bitmap);
+		console.log("File deleted");
 
     };
 
@@ -378,10 +379,8 @@ var adf = function(){
         disk.bitmap[sector] = 1;
 
         // update bitmap
-        writeBitmapBlock(disk.bitmapBlock,disk.bitmap);
-
+        writeBitmapBlock(disk.bitmapBlocks[0],disk.bitmap);
         return true;
-
     };
 
     me.writeFile = function(name,buffer,folder){
@@ -391,7 +390,16 @@ var adf = function(){
 		var i;
 
         console.log("Write file: " + name);
-        // TODO: check if file already exists and delete it if needed
+
+		// check if file already exists
+		let folderContent = me.readFolderAtSector(folder);
+		folderContent.files.forEach(file => {
+			if (file.name === name){
+				console.warn("File already exists");
+				// TODO Delete existing file ?
+			}
+		});
+
 
         // check if it will fit
 		var freeBlocks = getFreeBlocks();
@@ -418,17 +426,17 @@ var adf = function(){
 		
 		var headerBlocks = [header];
 		if (headerBlockCount>1){
-			console.log("Creating " + (headerBlockCount-1) + " Extention blocks"); 
+			console.log("Creating " + (headerBlockCount-1) + " Extension blocks");
 			for (i = 1; i<headerBlockCount;i++){
 				var newSector = getEmptyBlock();
 				clearSector(newSector);
 				disk.bitmap[newSector] = 0;
-				headerBlocks.push(createExtentionBlock(newSector,sector));
+				headerBlocks.push(createExtensionBlock(newSector,sector));
 			}
 			
 			// chain them
 			for (i = 0; i<headerBlockCount-1;i++){
-				headerBlocks[i].dataBlockExtention = headerBlocks[i+1].sector;
+				headerBlocks[i].dataBlockExtension = headerBlocks[i+1].sector;
 			}
 		}
 		
@@ -487,10 +495,10 @@ var adf = function(){
 				writeDataBlock(dataBlocks[i].sector,dataBlocks[i]);
 			}
 
-			// write extention blocks to disk
+			// write extension blocks to disk
 			for (i = 1; i<headerBlockCount; i++){
-                console.log("write extention block " + headerBlocks[i].sector);
-				writeExtentionBlock(headerBlocks[i].sector,headerBlocks[i]);
+                console.log("write extension block " + headerBlocks[i].sector);
+				writeExtensionBlock(headerBlocks[i].sector,headerBlocks[i]);
 			}
 			
         }
@@ -512,7 +520,7 @@ var adf = function(){
         writeHeaderBlock(folder,folderHeaderBlock);
 
         // update used blocks
-        writeBitmapBlock(disk.bitmapBlock,disk.bitmap);
+        writeBitmapBlock(disk.bitmapBlocks[0],disk.bitmap);
 
 		return sector;
 	};
@@ -537,7 +545,7 @@ var adf = function(){
         writeHeaderBlock(folder,folderHeaderBlock);
 
         // update used blocks
-        writeBitmapBlock(disk.bitmapBlock,disk.bitmap);
+        writeBitmapBlock(disk.bitmapBlocks[0],disk.bitmap);
         
         return sector;
 	};
@@ -789,7 +797,7 @@ var adf = function(){
             disk.goto((sector * SectorSize) + SectorSize - 16);
             block.linkedSector = disk.readLong(); // sector of entry in the same folder
             block.parent = disk.readLong();
-            block.dataBlockExtention = disk.readLong();
+            block.dataBlockExtension = disk.readLong();
             block.typeString = disk.readLong() == 4294967293 ? "FILE" : "DIR";
             // 4294967293 == -3 , should we read as signed ?
 			// this value is 2 for folders and 1 for the root folder
@@ -866,7 +874,7 @@ var adf = function(){
             disk.goto((sector * SectorSize) + SectorSize - 16);
             disk.writeUint(block.linkedSector);
             disk.writeUint(block.parent);
-            disk.writeUint(block.dataBlockExtention);
+            disk.writeUint(block.dataBlockExtension);
 		}
 
         disk.goto((sector * SectorSize) + SectorSize - 92);
@@ -905,7 +913,7 @@ var adf = function(){
             size: data.length,
             linkedSector: 0,
             parent:folder,
-            dataBlockExtention:0,
+            dataBlockExtension:0,
             DataBlockCount:dataBlockCount,
             dataSize:0,
             firstDataBlock:0,
@@ -924,7 +932,7 @@ var adf = function(){
             pointers: [],
             linkedSector: 0,
             parent:folder,
-            dataBlockExtention:0, // FFS Directory cache block
+            dataBlockExtension:0, // FFS Directory cache block
             name: name
         };
         for (var i=0;i<72;i++){header.pointers[i] = 0}
@@ -932,7 +940,7 @@ var adf = function(){
         return header;
     }
 
-	function readExtentionBlock(sector){
+	function readExtensionBlock(sector){
 		var block = {};
 		disk.goto(sector * SectorSize);
 		block.type = disk.readLong(); // should be 16 for LIST block
@@ -949,14 +957,14 @@ var adf = function(){
             block.pointers.push(disk.readLong() || 0);
 		}
 		disk.goto((sector * SectorSize) + SectorSize - 8);
-		block.dataBlockExtention = disk.readLong();
+		block.dataBlockExtension = disk.readLong();
 
 
-		console.log("Extention block " + sector,block.DataBlockCount);
+		console.log("Extension block " + sector,block.DataBlockCount);
 		return block;
 	}
 
-	function writeExtentionBlock(sector,block){
+	function writeExtensionBlock(sector,block){
 		disk.goto(sector * SectorSize);
 		disk.writeUint(16); //LIST block
 		disk.writeUint(sector); 
@@ -970,7 +978,7 @@ var adf = function(){
 		}
 		disk.goto((sector * SectorSize) + SectorSize - 12);
 		disk.writeUint(block.parent);
-		disk.writeUint(block.dataBlockExtention);
+		disk.writeUint(block.dataBlockExtension);
 		disk.writeUint(4294967293);
 
 
@@ -983,13 +991,13 @@ var adf = function(){
 		return block;
 	}
 
-	function createExtentionBlock(sector,parent){
+	function createExtensionBlock(sector,parent){
 		var header = {
 			type: 16,
-			typeString: "EXTENTION",
+			typeString: "EXTENSION",
 			sector: sector,
 			pointers: [],
-            dataBlockExtention: 0,
+            dataBlockExtension: 0,
 			parent:parent,
 			DataBlockCount:0
 		};
@@ -1097,26 +1105,21 @@ var adf = function(){
         cs = -cs;
         if (cs < 0) cs += 0x100000000;
 
-        // todo: the location of the checksum is 0 for bitmapblocks, not 20 ...
-        //if (typeof sector !== "number"){
-        //    sector[20] = cs >>> 24;
-        //    sector[21] = (cs >>> 16) & 0xff;
-        //    sector[22] = (cs >>> 8) & 0xff;
-        //    sector[23] = cs & 0xff;
-        //    return sector;
-        //}
-
         return cs;
 	};
 
 	me.getFreeSize = function(){
 		// Free/used blocks are stored in bitmap blocks;
 		// pointers to the bitmap blocks are stored in the rootblock;
-		// this is the same for harddisks, but for >50MB ones - that have more then 25 bitmap blocks, there are "bitmap extention blocks" - of which the first one is linked in the bitmap_ext field of the Rootblock;
+		// this is the same for harddisks, but for >50MB ones - that have more then 25 bitmap blocks, there are "bitmap extension blocks" - of which the first one is linked in the bitmap_ext field of the Rootblock;
 
         var rootBlock =  readHeaderBlock(rootSector);
 
-        console.error(rootBlock);
+		disk.bitmapBlocks = rootBlock.bitmapBlocks;
+		var bitmapBlock = readBitmapBlock(rootBlock.bitmapBlocks[0]);
+		// NOTE: ADF disks fit in 1 bitmap block in the "map" ?
+		// if we have more, should we concatenate them?
+		disk.bitmap = bitmapBlock.map;
 
 		var count = 0;
 		var countIndex = 0;
@@ -1124,26 +1127,20 @@ var adf = function(){
 		for (var ri = 0; ri<rootBlock.bitmapBlocks.length; ri++){
 			var sector = rootBlock.bitmapBlocks[ri];
 			if (sector>0){
-				var bitmapBlock = readBitmapBlock(sector);
-				var max = bitmapBlock.map.length;
-				for (var i = 0;i<max;i++){
+				var _bitmapBlock = readBitmapBlock(sector);
+				var max = _bitmapBlock.map.length;
+				for (let i = 0;i<max;i++){
 					if (countIndex<SectorCount){
-						count += bitmapBlock.map[i];
+						count += _bitmapBlock.map[i];
 						countIndex++;
 					}
 				}
 			}
 		}
 
-        // let's assume we only have one bitmapBlock ...
-		disk.bitmapBlock = rootBlock.bitmapBlocks[0];
-
-
-        bitmapBlock.usedBlocks = count;
         disk.freeBlocks = SectorCount-count;
 		disk.free = count*0.5;
 		disk.used = (SectorCount/2) - disk.free;
-		disk.bitmap = disk.bitmapBlock.map;
 		return disk;
 
 	};
