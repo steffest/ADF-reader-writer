@@ -52,12 +52,12 @@ var MUSICMOD = function(){
         };
 
         if (typeof BassoonTracker === "undefined"){
-            var plugin = "https://www.stef.be/bassoontracker/script/bassoontracker-min.js";
+            var plugin = "https://www.stef.be/bassoontracker/versions/0.2.0/bassoontracker-min.js";
             loadScript(plugin,function(){
                 console.log("Tracker loaded");
                 BassoonTracker.init({
                     plugin: true,
-                    baseUrl: "https://www.stef.be/bassoontracker/",
+                    baseUrl: "https://www.stef.be/bassoontracker/versions/0.2.0/",
                     canvas: document.getElementById("canvas"),
                     callback: function(){
                         console.log("Tracker init Done");
