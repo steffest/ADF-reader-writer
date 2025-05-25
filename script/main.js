@@ -59,6 +59,9 @@ var AdfViewer = function(){
 				el("feedback").innerHTML = "This does not seem to be a standard Amiga DD disk file";
 				el("feedback").style.display = "block";
 			}
+
+			let fileType = url.split(".").pop().toUpperCase();
+			el("disktype").innerText = fileType + " file";
 		});
 	};
 

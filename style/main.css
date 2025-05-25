@@ -134,7 +134,7 @@ textarea{
 #list,
 #hex,
 #sectorhex{
-    height: 300px;
+    height: 400px;
     width: 500px;
     overflow: scroll;
     position: absolute;
@@ -145,7 +145,7 @@ textarea{
 #ascii,
 #sectorascii{
     width: 300px;
-    height: 300px;
+    height: 400px;
     float: right;
     background-color: #f8f8f8;
     border-left: 1px solid silver;

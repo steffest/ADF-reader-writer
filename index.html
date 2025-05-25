@@ -31,9 +31,10 @@
                 <option value="disks/DeluxePaintIII.adf">DeluxePaintIII.adf</option>
                 <option value="disks/DeluxePaintIVdata.adf">DeluxePaint IV Images.adf</option>
                 <option value="disks/VogueMusicDisk.adf">VogueMusicDisk.adf</option>
+                <option value="disks/minimal.hdf">minimal.hdf</option>
             </select>
         </div>
-        Drop your .adf files here
+        Drop your .adf or *.hdf files here
     </div>
 
     <div id="feedback">
@@ -55,7 +56,7 @@
                 </div>
             </div>
         </div>
-        <div class="caption amiga"><span class="diskmenu"><span id="diskspace"></span> <i class="fa fa-download" aria-hidden="true" onclick="adf.download()" title="Download disk"></i> </span> ADF file</div>
+        <div class="caption amiga"><span class="diskmenu"><span id="diskspace"></span> <i class="fa fa-download" aria-hidden="true" onclick="adf.download()" title="Download disk"></i> </span> <span id="disktype">ADF file</span></div>
         <div class="panel" id="folder">
             <div class="diskheader">
                 <div class="button right" onclick="AdfViewer.showSector(0)">Read Raw sectors</div>
@@ -111,7 +112,7 @@
     </div>
 
 
-    <div class="footer">Read and extract files from Amiga Disk Format (*.adf files) in plain javascript - 2017 by Steffest - <a href="https://github.com/steffest/ADF-reader">source on Github</a></div>
+    <div class="footer">Read and extract files from Amiga Disk Format (*.adf files and *.hdf files) in plain javascript - 2017 by Steffest - <a href="https://github.com/steffest/ADF-reader">source on Github</a></div>
 
 
 </div>

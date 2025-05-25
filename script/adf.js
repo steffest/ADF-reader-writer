@@ -42,17 +42,15 @@ var adf = function(){
 	var me = {};
 	var disk;
 
-	var SectorSize = 512; // the size in bytes of one sector;
-	var SectorCount = 1760;
+	var defaultAdfSectorCount = 1760; // standard DD disk that can store 880kb have a disk.length == 901120
+	var SectorSize = 512; // the default size in bytes of one sector in a standard Amiga disk
+	var SectorCount = defaultAdfSectorCount;
 	var rootSector = SectorCount/2;
 
 	me.loadDisk = function(url,next){
 
 		var onLoad = function(buffer){
 			disk = BinaryStream(buffer,true);
-
-			// standard DD disk that can store 880kb have a disk.length == 901120
-			// those disks have 1760 sectors of 512 bytes each
 
 			var passed = false;
 
@@ -1139,8 +1137,9 @@ var adf = function(){
 		}
 
         disk.freeBlocks = SectorCount-count;
-		disk.free = count*0.5;
-		disk.used = (SectorCount/2) - disk.free;
+		disk.totalSize = (SectorCount*SectorSize) >> 10;
+		disk.free = (count*SectorSize) >> 10; // in KB
+		disk.used = disk.totalSize - disk.free;
 		return disk;
 
 	};
@@ -1158,7 +1157,7 @@ var adf = function(){
 		var info = me.getInfo();
 		var b = new Blob([disk.buffer], {type: "application/octet-stream"});
 
-		var fileName = info.label + ".adf";
+		var fileName = info.label + (SectorCount === defaultAdfSectorCount ? ".adf" : ".hdf");
 		saveAs(b,fileName);
 	};
 
