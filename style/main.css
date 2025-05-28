@@ -36,6 +36,11 @@ textarea{
 
 #dropzone.over{
     border: 1px dashed #fb9b00;
+    box-shadow: 0 0 10px rgba(251, 155, 0, 0.5);
+}
+
+#dropzone.over .selector{
+    pointer-events: none;
 }
 
 #dropzone .selector{

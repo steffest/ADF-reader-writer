@@ -1,15 +1,18 @@
 # ADF reader/writer
 This is an implementation of the Amiga Filesystem in plain javascript.  
-It can be used to read, extract and write files from/to Amiga Disk Format (*.adf) files.
+It can be used to read, extract and write files from/to Amiga Disk Format (*.adf and *.hdf) files.
 
-Currently only standard Amiga Double Density disk are supported (the 880 kb ones)  
-HD floppies and HDF support is being worked on.  
-Both Original and Fast File System are supported.
+
+Both Original (OFS) and Fast File System (FFS) are supported in both ADF floppy disk images and HDF hard disk images.
+Hard disk images with multiple partitions are not supported yet.
 
 The main module is [adf.js](https://github.com/steffest/ADF-reader/blob/master/script/adf.js)  
 It uses a binary file wrapper at [file.js](https://github.com/steffest/ADF-reader/blob/master/script/file.js) for easy parsing binary data.
 
-The rest of the package is a small demo, providing a simple user interface to browse the disk.  
+The rest of the package is a small demo, providing a simple user interface to 
+ - browse the disk
+ - extract/view files
+ - create folders and files
 Live demo at [http://www.stef.be/adfviewer/](http://www.stef.be/adfviewer/)
 
 It can disregard all block checksums and file attributes, which makes it quite useful to salvage files from corrupt disks.
@@ -21,14 +24,14 @@ Basic writing support was added for interaction with the [Scripted Amiga Emulato
 ### Main API:
 
 #### adf.loadDisk(source)
-> Loads a disk from an adf file. When source is a string, it's considered as a URI, otherwise you can pass an ArrayBuffer.  
+> Loads a disk from an adf or hdf file. When source is a string, it's considered as a URI, otherwise you can pass an ArrayBuffer.  
 > All future actions will be done on this disk.
 
 #### adf.getInfo()
 > Returns some basic info on the disk.
 
 #### adf.getFreeSize()
-> Returns the used and free space of the disk (in blocks and KB)
+> Returns the used and free space of the disk (in blocks and bytes).
 
 #### adf.readRootFolder()
 > Returns the files and directories of the root folder of the disk.  
@@ -87,11 +90,17 @@ The following methods are available for low level disk reading
 #### readDataBlock(sector)
 > Returns a parsed dataBlock
 
-#### readExtentionBlock(sector)
+#### readExtensionBlock(sector)
 > Returns a parsed extentionBlock
 
+#### readBitmapblock(sector)
+> Returns a parsed bitmapBlock
+
+#### readBitmapExtensionBlock(sector)
+> Returns a parsed extended bitmapBlock
+
 #### getDisk()
-> Returns the currect disk structure. the "buffer" property contains the binary data of the disk
+> Returns the current disk structure. the "buffer" property contains the binary data of the disk
 
 ### Notes
 **Writing support is still a bit experimental**.   

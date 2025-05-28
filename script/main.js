@@ -52,7 +52,11 @@ var AdfViewer = function(){
 					el("folder").style.display = "block";
 					me.showRoot();
 				}else{
-					el("feedback").innerHTML = "This does not seem to be an AmigaDOS disk";
+					let error = "This does not seem to be an AmigaDOS disk";
+					if (info.diskFormat === "RDSK"){
+						error = "This seems to be a disk with multiple partitions. Sorry, those are not supported yet.";
+					}
+					el("feedback").innerHTML = error;
 					el("feedback").style.display = "block";
 				}
 			}else{
@@ -60,10 +64,38 @@ var AdfViewer = function(){
 				el("feedback").style.display = "block";
 			}
 
-			let fileType = url.split(".").pop().toUpperCase();
+			let fileType = "ADF";
+			if (typeof url == "string" && url.indexOf(".") > 0){
+				fileType = url.split(".").pop().toUpperCase();
+			}
 			el("disktype").innerText = fileType + " file";
 		});
 	};
+
+	me.browseLocalFile = function(){
+		var input = document.createElement('input');
+		input.type = 'file';
+		input.onchange = function(e){
+			console.log("file uploaded");
+			var files = e.target.files;
+			if (files.length){
+				var file = files[0];
+
+				var reader = new FileReader();
+				reader.onload = function(){
+					me.load(reader.result);
+				};
+				reader.onerror = function(){
+					console.error("Failed to read file!",reader.error);
+					el("feedback").innerHTML = "Sorry, something went wrong reading this file.";
+					el("feedback").style.display = "block";
+					reader.abort();
+				};
+				reader.readAsArrayBuffer(file);
+			}
+		};
+		input.click();
+	}
 
 	function listFolder(folder){
 
@@ -193,7 +225,6 @@ var AdfViewer = function(){
 
 		if (f.typeString == "FILE"){
 			var fileType = AdfViewer.detectFileType(f.sector);
-			console.log(fileType);
 
 			if (fileType){
 				container = el("filetypeactions");
@@ -216,14 +247,38 @@ var AdfViewer = function(){
 		}
 	}
 
+	function updateFreeSize(){
+		let sizes = adf.getFreeSize();
+		let free = formatDiskSize(sizes.free);
+		let used = formatDiskSize(sizes.used);
+		el("diskspace").innerHTML = "Used: " + used + ", Free: " + free;
+	}
+
 	function el(id){
 		return document.getElementById(id);
 	}
 
 	function formatSize(size){
-		var result = Math.round(size / 1024);
-		if (result == 0) result = 1;
-		return result + " kb";
+		let n = "bytes";
+		if (size >= 1024){
+			size = Math.round(size / 1024);
+			n = "kb";
+			if (size >= 1024){
+				size = Math.round(size / 1024);
+				n = "mb";
+				if (size >= 1024){
+					size = Math.round(size / 1024);
+					n = "gb";
+				}
+			}
+		}
+		if (size === 0) size = 1;
+		return size + " " + n;
+	}
+
+	function formatDiskSize(size){
+		let s = formatSize(size).split(" ");
+		return "<b>" + s[0] + "</b> " + s[1];
 	}
 
 	function formatDateTime(days,minutes,ticks){
@@ -334,9 +389,10 @@ var AdfViewer = function(){
 		el("filemanager").classList.add("disk");
 
 		var diskspace = el("diskspace");
-		diskspace.innerHTML = "Used: <b>" + disk.used + "</b> kb, Free: <b>" + disk.free + "</b> kb";
-		
-	
+
+		let free = formatDiskSize(disk.free);
+		let used = formatDiskSize(disk.used);
+		diskspace.innerHTML = "Used: " + used + ", Free: " + free;
 	};
 
 	me.download = function(sector){
@@ -353,6 +409,7 @@ var AdfViewer = function(){
     me.delete = function(sector){
 		sector = sector || currentSector;
 		adf.deleteFileAtSector(sector,true);
+		updateFreeSize();
 		refreshFolder();
 	};
 
@@ -390,7 +447,13 @@ var AdfViewer = function(){
 
                 var reader = new FileReader();
                 reader.onload = function(){
-                    adf.writeFile(file.name,reader.result,currentFolder.sector);
+                    let sector = adf.writeFile(file.name,reader.result,currentFolder.sector);
+					if (!sector){
+						alert("Sorry, not enough space on this disk.");
+						return;
+					}
+					console.log("File written to sector",sector);
+					updateFreeSize();
                     refreshFolder();
                 };
                 reader.readAsArrayBuffer(file);
@@ -410,6 +473,7 @@ var AdfViewer = function(){
 					var value = document.getElementById("dialoginput").value;
 					if (value){
 						adf.createFolder(value,currentFolder.sector);
+						updateFreeSize();
 						refreshFolder();
 					}
 				}
@@ -422,6 +486,7 @@ var AdfViewer = function(){
         if (deleted){
             var up = document.getElementById("list").querySelectorAll(".DIR")[0];
             if (up) up.click();
+			updateFreeSize();
 		}else{
         	alert("can't delete folder, it's not empty");
 		}
@@ -429,10 +494,11 @@ var AdfViewer = function(){
 
 	me.showSector = function(sector){
 		currentSector = sector || 0;
+		let disk = adf.getDisk();
 
 		if (isNaN(currentSector)) currentSector = 0;
 		if (currentSector<0) currentSector=0;
-		if (currentSector>=1760) currentSector = 1759;
+		if (currentSector>=disk.sectorCount) currentSector = disk.sectorCount-1;
 
 		el("sector").value = currentSector;
 		el("sectorinfo").innerHTML = adf.getSectorType(sector);
@@ -485,9 +551,16 @@ var AdfViewer = function(){
 		e.preventDefault();
 	};
 
+	me.handleDragLeave = function(e){
+		e.stopPropagation();
+		e.preventDefault();
+		el("dropzone").className = "";
+	}
+
 	me.handleDrop = function(e){
 		e.stopPropagation();
 		e.preventDefault();
+		el("dropzone").className = "";
 
 		var dt = e.dataTransfer;
 		var files = dt.files;
